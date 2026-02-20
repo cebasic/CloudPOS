@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Cocina - CocosBarrancos{% endblock %}
+{% block page_title %}Cocina{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kitchen-item { transition: all 0.3s ease; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="kitchen-app">
+    <div class="mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div id="status-dot" class="h-3 w-3 rounded-full bg-red-500"></div>
+            <span id="status-text" class="text-sm text-gray-500">Conectando...</span>
+        </div>
+        <span id="order-count" class="text-sm text-gray-400"></span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <h2 class="text-sm font-semibold text-yellow-800 bg-yellow-100 rounded-t-lg px-4 py-2 uppercase tracking-wider">
+                Pendientes <span id="pending-count" class="ml-1 text-xs font-normal"></span>
+            </h2>
+            <div id="pending-col" class="space-y-2 bg-yellow-50/50 rounded-b-lg p-3 min-h-[200px]">
+                <div class="text-center text-gray-400 text-sm py-8">Sin pendientes</div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-sm font-semibold text-blue-800 bg-blue-100 rounded-t-lg px-4 py-2 uppercase tracking-wider">
+                Preparando <span id="preparing-count" class="ml-1 text-xs font-normal"></span>
+            </h2>
+            <div id="preparing-col" class="space-y-2 bg-blue-50/50 rounded-b-lg p-3 min-h-[200px]">
+                <div class="text-center text-gray-400 text-sm py-8">Nada preparandose</div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-sm font-semibold text-green-800 bg-green-100 rounded-t-lg px-4 py-2 uppercase tracking-wider">
+                Listos para Servir <span id="ready-count" class="ml-1 text-xs font-normal"></span>
+            </h2>
+            <div id="ready-col" class="space-y-2 bg-green-50/50 rounded-b-lg p-3 min-h-[200px]">
+                <div class="text-center text-gray-400 text-sm py-8">Sin items listos</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var ws = null;
+    var orders = [];
+
+    function connect() {
+        var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(protocol + '//' + window.location.host + '/ws/kitchen/');
+
+        ws.onopen = function() {
+            document.getElementById('status-dot').className = 'h-3 w-3 rounded-full bg-green-500';
+            document.getElementById('status-text').textContent = 'Conectado en tiempo real';
+        };
+        ws.onclose = function() {
+            document.getElementById('status-dot').className = 'h-3 w-3 rounded-full bg-red-500';
+            document.getElementById('status-text').textContent = 'Reconectando...';
+            setTimeout(connect, 3000);
+        };
+        ws.onmessage = function(e) {
+            var data = JSON.parse(e.data);
+            if (data.type === 'initial' || data.type === 'update') {
+                orders = data.orders;
+                render();
+            }
+        };
+    }
+
+    function sendItemStatus(itemId, newStatus, orderId) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                action: 'update_item_status',
+                item_id: itemId,
+                status: newStatus,
+                order_id: orderId
+            }));
+        }
+    }
+    window.sendItemStatus = sendItemStatus;
+
+    function esc(text) {
+        if (!text) return '';
+        var d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function renderItem(item, order, showAction) {
+        var notes = item.notes ? ' <span class="text-xs text-gray-400">(' + esc(item.notes) + ')</span>' : '';
+        var action = '';
+        if (showAction === 'prepare') {
+            action = '<button onclick="sendItemStatus(' + item.id + ',\'preparing\',' + order.id + ')" ' +
+                     'class="text-xs rounded bg-blue-500 text-white px-2.5 py-1 hover:bg-blue-600 font-medium shrink-0">' +
+                     'Preparar</button>';
+        } else if (showAction === 'ready') {
+            action = '<button onclick="sendItemStatus(' + item.id + ',\'ready\',' + order.id + ')" ' +
+                     'class="text-xs rounded bg-green-600 text-white px-2.5 py-1 hover:bg-green-700 font-medium shrink-0">' +
+                     'Listo!</button>';
+        } else if (showAction === 'done') {
+            action = '<span class="text-xs rounded bg-green-100 text-green-700 px-2 py-1 font-medium shrink-0">Listo</span>';
+        }
+
+        return '<div class="kitchen-item flex items-center justify-between bg-white rounded-lg shadow-sm ring-1 ring-gray-200 px-3 py-2.5">' +
+               '<div class="min-w-0">' +
+               '<div class="text-sm font-medium text-gray-900">' + item.quantity + 'x ' + esc(item.name) + notes + '</div>' +
+               '<div class="text-xs text-gray-400 mt-0.5">Orden #' + order.id + ' — Mesa ' + order.table_number +
+               ' <span class="text-gray-300">|</span> ' + order.created_at + '</div>' +
+               '</div>' +
+               '<div class="ml-3 shrink-0">' + action + '</div>' +
+               '</div>';
+    }
+
+    function render() {
+        var pendingItems = [];
+        var preparingItems = [];
+        var readyItems = [];
+
+        for (var i = 0; i < orders.length; i++) {
+            var order = orders[i];
+            for (var j = 0; j < order.items.length; j++) {
+                var item = order.items[j];
+                if (item.status === 'pending') {
+                    pendingItems.push({item: item, order: order});
+                } else if (item.status === 'preparing') {
+                    preparingItems.push({item: item, order: order});
+                } else if (item.status === 'ready') {
+                    readyItems.push({item: item, order: order});
+                }
+            }
+        }
+
+        document.getElementById('order-count').textContent = orders.length + ' orden(es) activa(s)';
+        document.getElementById('pending-count').textContent = '(' + pendingItems.length + ')';
+        document.getElementById('preparing-count').textContent = '(' + preparingItems.length + ')';
+        document.getElementById('ready-count').textContent = '(' + readyItems.length + ')';
+
+        var pendingCol = document.getElementById('pending-col');
+        if (pendingItems.length === 0) {
+            pendingCol.innerHTML = '<div class="text-center text-gray-400 text-sm py-8">Sin pendientes</div>';
+        } else {
+            pendingCol.innerHTML = pendingItems.map(function(p) {
+                return renderItem(p.item, p.order, 'prepare');
+            }).join('');
+        }
+
+        var preparingCol = document.getElementById('preparing-col');
+        if (preparingItems.length === 0) {
+            preparingCol.innerHTML = '<div class="text-center text-gray-400 text-sm py-8">Nada preparandose</div>';
+        } else {
+            preparingCol.innerHTML = preparingItems.map(function(p) {
+                return renderItem(p.item, p.order, 'ready');
+            }).join('');
+        }
+
+        var readyCol = document.getElementById('ready-col');
+        if (readyItems.length === 0) {
+            readyCol.innerHTML = '<div class="text-center text-gray-400 text-sm py-8">Sin items listos</div>';
+        } else {
+            readyCol.innerHTML = readyItems.map(function(p) {
+                return renderItem(p.item, p.order, 'done');
+            }).join('');
+        }
+    }
+
+    connect();
+})();
+</script>
+{% endblock %}

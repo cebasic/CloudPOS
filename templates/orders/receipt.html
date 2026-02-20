@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Recibo Orden #{{ order.pk }} - CocosBarrancos{% endblock %}
+{% block page_title %}Recibo — Orden #{{ order.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-5 text-center border-b border-gray-200">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-3">
+                <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold text-gray-900">Orden Cobrada</h2>
+            <p class="text-sm text-gray-500 mt-1">Mesa {{ order.table.number }} — {{ order.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+
+        <div class="px-6 py-4 border-b border-gray-200">
+            <table class="min-w-full text-sm">
+                {% for item in order.items.all %}
+                <tr>
+                    <td class="py-1 text-gray-700">{{ item.quantity }}x {{ item.menu_item.name }}</td>
+                    <td class="py-1 text-right text-gray-900">${{ item.subtotal }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="px-6 py-4 space-y-2">
+            <div class="flex justify-between text-base font-bold text-gray-900">
+                <span>Total</span>
+                <span>${{ order.payment.total }}</span>
+            </div>
+            <div class="flex justify-between text-sm text-gray-600">
+                <span>Metodo</span>
+                <span class="font-medium">{{ order.payment.get_method_display }}</span>
+            </div>
+            {% if order.payment.method == 'cash' %}
+            <div class="flex justify-between text-sm text-gray-600">
+                <span>Recibido</span>
+                <span>${{ order.payment.amount_received }}</span>
+            </div>
+            {% if order.payment.change_due %}
+            <div class="flex justify-between text-base font-bold text-green-700 bg-green-50 rounded-md px-3 py-2 -mx-3">
+                <span>Cambio</span>
+                <span>${{ order.payment.change_due }}</span>
+            </div>
+            {% endif %}
+            {% endif %}
+            <div class="flex justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
+                <span>Cobrado por: {{ order.payment.collected_by.get_full_name|default:order.payment.collected_by.username }}</span>
+                <span>{{ order.payment.created_at|date:"H:i" }}</span>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 flex gap-3">
+            <a href="{% url 'orders:dashboard' %}" class="flex-1 text-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-500">
+                Volver a Ordenes
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

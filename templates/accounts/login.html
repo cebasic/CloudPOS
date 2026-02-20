@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Iniciar Sesion - CocosBarrancos{% endblock %}
+
+{% block body %}
+<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-gray-50">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+        <h1 class="text-center text-3xl font-bold text-brand-600">CocosBarrancos</h1>
+        <h2 class="mt-4 text-center text-xl font-semibold text-gray-900">Iniciar Sesion</h2>
+    </div>
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-sm">
+        {% if form.errors %}
+        <div class="mb-4 rounded-md bg-red-50 p-4">
+            <p class="text-sm text-red-700">Usuario o contrasena incorrectos.</p>
+        </div>
+        {% endif %}
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+            <div>
+                <label for="id_username" class="block text-sm font-medium text-gray-700">Usuario</label>
+                <div class="mt-1">{{ form.username }}</div>
+            </div>
+            <div>
+                <label for="id_password" class="block text-sm font-medium text-gray-700">Contrasena</label>
+                <div class="mt-1">{{ form.password }}</div>
+            </div>
+            <button type="submit" class="flex w-full justify-center rounded-md bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
+                Entrar
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

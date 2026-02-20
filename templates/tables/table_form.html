@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - CocosBarrancos{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+    <form method="post" class="space-y-6 bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-6">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="flex items-center gap-3 pt-4 border-t border-gray-200">
+            <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-500">Guardar</button>
+            <a href="{% url 'tables:list' %}" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
