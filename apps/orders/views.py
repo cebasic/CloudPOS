@@ -114,6 +114,14 @@ def order_update_status(request, pk):
     if new_status and new_status in dict(Order.Status.choices):
         order.status = new_status
         order.save(update_fields=["status", "updated_at"])
+        if new_status == "cancelled":
+            has_active = Order.objects.filter(
+                table=order.table,
+                status__in=["pending", "in_progress", "ready", "delivered"],
+            ).exclude(pk=order.pk).exists()
+            if not has_active:
+                order.table.status = "available"
+                order.table.save(update_fields=["status"])
         _notify_kitchen(order)
         messages.success(request, f"Orden #{order.pk} actualizada a {order.get_status_display()}.")
     return redirect("orders:detail", pk=pk)
