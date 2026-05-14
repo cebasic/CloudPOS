@@ -19,12 +19,23 @@ class KitchenConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         action = data.get("action")
         if action == "update_item_status":
-            await self.update_item_status(data["item_id"], data["status"])
-            orders = await self.get_active_orders()
+            waiter_id, table_number, item_name = await self.update_item_status(
+                data["item_id"], data["status"]
+            )
             await self.channel_layer.group_send(
                 self.group_name,
                 {"type": "kitchen.update", "order_id": data.get("order_id")},
             )
+            if data["status"] == "ready" and waiter_id:
+                await self.channel_layer.group_send(
+                    f"waiter_{waiter_id}",
+                    {
+                        "type": "waiter.notification",
+                        "order_id": data.get("order_id"),
+                        "table_number": table_number,
+                        "message": f"Mesa {table_number}: {item_name} está listo",
+                    },
+                )
 
     async def kitchen_update(self, event):
         orders = await self.get_active_orders()
@@ -58,6 +69,7 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                 "status_display": order.get_status_display(),
                 "notes": order.notes,
                 "created_at": order.created_at.strftime("%H:%M"),
+                "created_at_ts": int(order.created_at.timestamp() * 1000),
                 "items": items,
             })
         return result
@@ -65,10 +77,12 @@ class KitchenConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_item_status(self, item_id, status):
         try:
-            item = OrderItem.objects.select_related("order").get(pk=item_id)
+            item = OrderItem.objects.select_related("order__table", "order__waiter", "menu_item").get(pk=item_id)
             if status in dict(OrderItem.Status.choices):
                 item.status = status
                 item.save(update_fields=["status"])
                 item.order.sync_status()
+                return item.order.waiter_id, item.order.table.number, item.menu_item.name
         except OrderItem.DoesNotExist:
             pass
+        return None, None, None
