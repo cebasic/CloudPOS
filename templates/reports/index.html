@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Reportes - CocosBarrancos{% endblock %}
+{% block title %}Reportes — CocosBarrancos{% endblock %}
 {% block page_title %}Reportes{% endblock %}
 
 {% block extra_head %}
@@ -7,93 +7,141 @@
 {% endblock %}
 
 {% block content %}
-{# Date filter #}
-<form method="get" class="mb-6 bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-4 flex flex-wrap items-end gap-4">
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-        <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
-               class="block rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm">
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-        <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
-               class="block rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm">
-    </div>
-    <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-500">Filtrar</button>
-</form>
-
-{# KPIs #}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Total Ordenes</div>
-        <div class="mt-1 text-3xl font-bold text-gray-900">{{ total_orders }}</div>
-    </div>
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Ingresos Totales</div>
-        <div class="mt-1 text-3xl font-bold text-green-600">${{ total_revenue|floatformat:2 }}</div>
-    </div>
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Ticket Promedio</div>
-        <div class="mt-1 text-3xl font-bold text-gray-900">${{ avg_ticket|floatformat:2 }}</div>
-    </div>
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-5">
-        <div class="text-sm font-medium text-gray-500">Periodo</div>
-        <div class="mt-1 text-lg font-semibold text-gray-700">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</div>
-    </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    {# Daily sales chart #}
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4">Ordenes por Dia</h3>
-        <canvas id="dailyChart" height="200"></canvas>
-    </div>
-
-    {# Top items #}
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-5">
-        <h3 class="text-sm font-semibold text-gray-900 mb-4">Platillos mas Vendidos</h3>
-        {% if top_items %}
-        <div class="space-y-3">
-            {% for item in top_items %}
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="flex items-center justify-center w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold">{{ forloop.counter }}</span>
-                    <span class="text-sm font-medium text-gray-900">{{ item.menu_item__name }}</span>
-                </div>
-                <div class="text-right">
-                    <span class="text-sm font-semibold text-gray-900">{{ item.total_qty }} vendidos</span>
-                    <span class="text-xs text-gray-500 ml-2">${{ item.total_revenue|floatformat:2 }}</span>
-                </div>
-            </div>
-            {% endfor %}
+{# Filters #}
+<div class="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-6">
+    <form method="get" class="flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Desde</label>
+            <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+                   class="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
         </div>
-        {% else %}
-        <p class="text-sm text-gray-400 text-center py-8">Sin datos para el periodo seleccionado.</p>
-        {% endif %}
+        <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Hasta</label>
+            <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+                   class="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
+        </div>
+        <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-bold text-white hover:bg-brand-600 transition-colors">Filtrar</button>
+        <a href="{% url 'reports:export_csv' %}?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}"
+           class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-600 transition-colors">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Exportar CSV
+        </a>
+    </form>
+</div>
+
+{# KPIs row 1 #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Órdenes</p>
+        <p class="text-3xl font-bold text-white">{{ total_orders }}</p>
+        <p class="text-xs text-slate-500 mt-1">{{ date_from|date:"d/m" }} — {{ date_to|date:"d/m/Y" }}</p>
+    </div>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ingresos</p>
+        <p class="text-3xl font-bold text-emerald-400">${{ total_revenue|floatformat:2 }}</p>
+        <p class="text-xs text-slate-500 mt-1">Ticket prom: ${{ avg_ticket|floatformat:2 }}</p>
+    </div>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Propinas</p>
+        <p class="text-3xl font-bold text-yellow-400">${{ total_tips|floatformat:2 }}</p>
+        <p class="text-xs text-slate-500 mt-1">Del periodo</p>
+    </div>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Descuentos</p>
+        <p class="text-3xl font-bold text-rose-400">${{ total_discounts|floatformat:2 }}</p>
+        <p class="text-xs text-slate-500 mt-1">Cancelaciones: {{ cancel_rate|floatformat:1 }}%</p>
     </div>
 </div>
+
+{# Payment breakdown #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-4">
+        <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Efectivo</p>
+            <p class="text-2xl font-bold text-emerald-400">${{ cash_revenue|floatformat:2 }}</p>
+        </div>
+    </div>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-4">
+        <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Tarjeta</p>
+            <p class="text-2xl font-bold text-blue-400">${{ card_revenue|floatformat:2 }}</p>
+        </div>
+    </div>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-4">
+        <div class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+            <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Pagos Mixtos</p>
+            <p class="text-2xl font-bold text-purple-400">{{ mixed_count }}</p>
+            <p class="text-xs text-slate-500">transacciones</p>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    {# Daily chart #}
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
+        <h3 class="text-sm font-semibold text-slate-300 mb-4">Ventas por Día</h3>
+        <canvas id="dailyChart" height="180"></canvas>
+    </div>
+
+    {# Hourly chart (single day only) #}
+    {% if single_day %}
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
+        <h3 class="text-sm font-semibold text-slate-300 mb-4">Distribución por Hora</h3>
+        <canvas id="hourlyChart" height="180"></canvas>
+    </div>
+    {% else %}
+    {# Top items when range #}
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
+        <h3 class="text-sm font-semibold text-slate-300 mb-4">Platillos más Vendidos</h3>
+        {% include "reports/partials/top_items.html" %}
+    </div>
+    {% endif %}
+</div>
+
+{% if not single_day %}
+{# Nothing – top items already shown above #}
+{% else %}
+{# Show top items below when single day #}
+<div class="bg-slate-800 rounded-xl border border-slate-700 p-5 mb-6">
+    <h3 class="text-sm font-semibold text-slate-300 mb-4">Platillos más Vendidos</h3>
+    {% include "reports/partials/top_items.html" %}
+</div>
+{% endif %}
 
 {# Orders by waiter #}
-<div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg overflow-hidden mb-8">
-    <h3 class="text-sm font-semibold text-gray-900 px-5 py-4 border-b border-gray-200">Ordenes por Mesero</h3>
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-700">
+        <h3 class="text-sm font-semibold text-slate-300">Órdenes por Mesero</h3>
+    </div>
+    <table class="min-w-full">
+        <thead class="bg-slate-900/50">
             <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mesero</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ordenes</th>
+                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Mesero</th>
+                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Órdenes</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
+        <tbody class="divide-y divide-slate-700">
             {% for row in orders_by_waiter %}
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm text-gray-900">
+            <tr class="hover:bg-slate-700/40 transition-colors">
+                <td class="px-5 py-3 text-sm text-slate-200">
                     {{ row.waiter__first_name }} {{ row.waiter__last_name }}
-                    <span class="text-gray-400">({{ row.waiter__username }})</span>
+                    <span class="text-slate-500 text-xs">({{ row.waiter__username }})</span>
                 </td>
-                <td class="px-4 py-3 text-right text-sm font-medium text-gray-900">{{ row.order_count }}</td>
+                <td class="px-5 py-3 text-right">
+                    <span class="inline-flex items-center rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-400">{{ row.order_count }}</span>
+                </td>
             </tr>
             {% empty %}
-            <tr><td colspan="2" class="px-4 py-6 text-center text-gray-400 text-sm">Sin datos.</td></tr>
+            <tr><td colspan="2" class="px-5 py-8 text-center text-slate-500 text-sm">Sin datos para el periodo seleccionado.</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -101,31 +149,72 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dailyData = {{ daily_sales_json|safe }};
-    const labels = dailyData.map(d => d.day);
-    const counts = dailyData.map(d => d.count);
+    var CHART_DEFAULTS = {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.8)' } },
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+        }
+    };
 
-    if (document.getElementById('dailyChart')) {
+    var dailyData = {{ daily_sales_json|safe }};
+    if (document.getElementById('dailyChart') && dailyData.length) {
         new Chart(document.getElementById('dailyChart'), {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: dailyData.map(function(d){ return d.day; }),
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: dailyData.map(function(d){ return d.revenue; }),
+                        backgroundColor: 'rgba(249,115,22,0.6)',
+                        borderColor: 'rgba(249,115,22,1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Órdenes',
+                        data: dailyData.map(function(d){ return d.count; }),
+                        type: 'line',
+                        borderColor: 'rgba(99,102,241,0.9)',
+                        backgroundColor: 'rgba(99,102,241,0.1)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        yAxisID: 'y2',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: true, labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } } } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8', callback: function(v){ return '$'+v; } }, grid: { color: 'rgba(51,65,85,0.8)' } },
+                    y2: { beginAtZero: true, position: 'right', ticks: { color: '#6366f1', stepSize: 1 }, grid: { display: false } },
+                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    var hourlyData = {{ hourly_json|safe }};
+    if (document.getElementById('hourlyChart') && hourlyData.length) {
+        new Chart(document.getElementById('hourlyChart'), {
+            type: 'bar',
+            data: {
+                labels: hourlyData.map(function(d){ return d.hour; }),
                 datasets: [{
-                    label: 'Ordenes',
-                    data: counts,
-                    backgroundColor: 'rgba(237, 125, 14, 0.6)',
-                    borderColor: 'rgba(237, 125, 14, 1)',
+                    label: 'Órdenes',
+                    data: hourlyData.map(function(d){ return d.count; }),
+                    backgroundColor: 'rgba(20,184,166,0.6)',
+                    borderColor: 'rgba(20,184,166,1)',
                     borderWidth: 1,
                     borderRadius: 4,
                 }]
             },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                }
-            }
+            options: CHART_DEFAULTS
         });
     }
 });

@@ -5,4 +5,5 @@ app_name = "reports"
 
 urlpatterns = [
     path("", views.report_index, name="index"),
+    path("export/csv/", views.report_export_csv, name="export_csv"),
 ]
