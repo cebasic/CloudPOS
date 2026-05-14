@@ -13,6 +13,8 @@ urlpatterns = [
     path("orders/", include("apps.orders.urls")),
     path("kitchen/", include("apps.kitchen.urls")),
     path("reports/", include("apps.reports.urls")),
+    path("caja/", include("apps.cashier.urls")),
+    path("reservaciones/", include("apps.reservations.urls")),
     path("", lambda request: redirect("orders:dashboard")),
 ]
 

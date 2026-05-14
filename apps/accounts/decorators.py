@@ -8,8 +8,8 @@ def get_home_url(user):
     role = getattr(user, "role", None)
     if role == "kitchen":
         return "kitchen:display"
-    if role == "waiter":
-        return "orders:dashboard"
+    if role == "cashier":
+        return "cashier:dashboard"
     return "orders:dashboard"
 
 

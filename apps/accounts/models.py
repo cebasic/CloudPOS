@@ -8,6 +8,7 @@ class User(AbstractUser):
         MANAGER = "manager", "Gerente"
         WAITER = "waiter", "Mesero"
         KITCHEN = "kitchen", "Cocina"
+        CASHIER = "cashier", "Cajero"
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.WAITER)
 
