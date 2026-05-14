@@ -90,9 +90,27 @@ def item_toggle_available(request, pk):
     item.available = not item.available
     item.save(update_fields=["available"])
     if request.htmx:
-        return HttpResponse(
-            f'<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium '
-            f'{"bg-green-100 text-green-700" if item.available else "bg-red-100 text-red-700"}">'
-            f'{"Disponible" if item.available else "No disponible"}</span>'
-        )
+        if item.available:
+            badge = '<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400">Disponible</span>'
+        else:
+            badge = '<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-red-500/10 text-red-400">No disponible</span>'
+        return HttpResponse(badge)
     return redirect("menu:category_list")
+
+
+@login_required
+@role_required("admin", "manager", "kitchen")
+def quick_86(request):
+    categories = Category.objects.prefetch_related("items").all()
+    if request.method == "POST" and request.htmx:
+        item_id = request.POST.get("item_id")
+        item = get_object_or_404(MenuItem, pk=item_id)
+        if request.user.role in ("admin", "manager", "kitchen"):
+            item.available = not item.available
+            item.save(update_fields=["available"])
+        if item.available:
+            badge = '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">Disponible</span>'
+        else:
+            badge = '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-red-500/10 text-red-400 ring-1 ring-red-500/20">86\'d</span>'
+        return HttpResponse(badge)
+    return render(request, "menu/quick_86.html", {"categories": categories})

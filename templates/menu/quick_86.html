@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}86 Rápido — CocosBarrancos{% endblock %}
+{% block page_title %}86 Rápido{% endblock %}
+
+{% block content %}
+<p class="text-sm text-slate-400 mb-5">
+    Activa o desactiva la disponibilidad de platillos en tiempo real. Los cambios aplican inmediatamente en nuevas órdenes.
+</p>
+
+{% for category in categories %}
+{% if category.items.all %}
+<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden mb-4">
+    <div class="px-5 py-3.5 border-b border-slate-700 flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-slate-200">{{ category.name }}</h3>
+        <span class="text-xs text-slate-500">({{ category.items.count }})</span>
+    </div>
+    <div class="divide-y divide-slate-700">
+        {% for item in category.items.all %}
+        <div class="px-5 py-3 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">{{ item.name }}</p>
+                    {% if item.description %}
+                    <p class="text-xs text-slate-500 truncate">{{ item.description }}</p>
+                    {% endif %}
+                </div>
+                <span class="shrink-0 text-xs font-medium text-slate-400">${{ item.price }}</span>
+            </div>
+            <div class="shrink-0 flex items-center gap-3">
+                <span id="badge-{{ item.pk }}"
+                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1
+                    {% if item.available %}bg-emerald-500/10 text-emerald-400 ring-emerald-500/20{% else %}bg-red-500/10 text-red-400 ring-red-500/20{% endif %}">
+                    {% if item.available %}Disponible{% else %}86'd{% endif %}
+                </span>
+                <button
+                    hx-post="{% url 'menu:quick_86' %}"
+                    hx-vals='{"item_id": "{{ item.pk }}"}'
+                    hx-target="#badge-{{ item.pk }}"
+                    hx-swap="outerHTML"
+                    hx-include="[name=csrfmiddlewaretoken]"
+                    class="rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors
+                    {% if item.available %}border-red-500/40 text-red-400 hover:bg-red-500/10{% else %}border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10{% endif %}"
+                    hx-on:htmx:after-swap="this.classList.toggle('border-red-500/40'); this.classList.toggle('text-red-400'); this.classList.toggle('hover:bg-red-500/10'); this.classList.toggle('border-emerald-500/40'); this.classList.toggle('text-emerald-400'); this.classList.toggle('hover:bg-emerald-500/10')">
+                    {% if item.available %}86 it{% else %}Disponible{% endif %}
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% empty %}
+<div class="bg-slate-800 rounded-xl border border-slate-700 py-12 text-center">
+    <p class="text-slate-500 text-sm">No hay platillos en el menú.</p>
+</div>
+{% endfor %}
+<form id="csrf-holder">{% csrf_token %}</form>
+{% endblock %}

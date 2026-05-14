@@ -12,4 +12,5 @@ urlpatterns = [
     path("items/<int:pk>/edit/", views.item_edit, name="item_edit"),
     path("items/<int:pk>/delete/", views.item_delete, name="item_delete"),
     path("items/<int:pk>/toggle/", views.item_toggle_available, name="item_toggle"),
+    path("86/", views.quick_86, name="quick_86"),
 ]
