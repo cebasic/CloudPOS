@@ -16,7 +16,31 @@ Aplicación web monolítica para la gestión de un restaurante, construida con D
 - PostgreSQL
 - Valkey o Redis
 
-## Instalación
+## Levantar con Docker (recomendado)
+
+La forma más sencilla de correr el proyecto en cualquier máquina sin instalar dependencias.
+
+**Requisito:** tener [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado.
+
+```bash
+# Primera vez (construye la imagen e inicia todo)
+docker compose up --build
+
+# Arranques posteriores
+docker compose up
+
+# En background
+docker compose up -d
+
+# Detener
+docker compose down
+```
+
+Al arrancar, el contenedor web ejecuta automáticamente las migraciones, carga los datos de prueba (`seed_data`) y recoge los archivos estáticos. La app queda disponible en **http://localhost**.
+
+> Para personalizar la configuración (base de datos, secret key, etc.) edita el archivo `.env` antes de levantar los contenedores. Usa `.env.example` como referencia.
+
+## Instalación manual
 
 ```bash
 # 1. Crear y activar entorno virtual
