@@ -3,7 +3,7 @@ from .models import Order, OrderItem, Payment
 from apps.tables.models import Table
 from apps.menu.models import MenuItem
 
-INPUT_CLASS = "block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm"
+INPUT_CLASS = "block w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
 
 
 class OrderForm(forms.ModelForm):
@@ -49,10 +49,35 @@ class PaymentForm(forms.Form):
         max_digits=10,
         decimal_places=2,
         widget=forms.NumberInput(attrs={
-            "class": INPUT_CLASS,
-            "step": "0.01",
-            "min": "0",
-            "placeholder": "Monto recibido",
+            "class": INPUT_CLASS, "step": "0.01", "min": "0", "placeholder": "Monto recibido",
+        }),
+    )
+    tip = forms.DecimalField(
+        required=False,
+        min_value=0,
+        max_digits=10,
+        decimal_places=2,
+        initial=0,
+        widget=forms.NumberInput(attrs={
+            "class": INPUT_CLASS, "step": "0.01", "min": "0", "placeholder": "0.00",
+        }),
+    )
+    cash_amount = forms.DecimalField(
+        required=False,
+        min_value=0,
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            "class": INPUT_CLASS, "step": "0.01", "min": "0", "placeholder": "Monto en efectivo",
+        }),
+    )
+    card_amount = forms.DecimalField(
+        required=False,
+        min_value=0,
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            "class": INPUT_CLASS, "step": "0.01", "min": "0", "placeholder": "Monto en tarjeta",
         }),
     )
 
@@ -69,4 +94,30 @@ class PaymentForm(forms.Form):
                 self.add_error("amount_received", "Ingresa el monto recibido para pago en efectivo.")
             elif self.order_total and amount < self.order_total:
                 self.add_error("amount_received", f"El monto debe ser al menos ${self.order_total}.")
+        if method == "mixed":
+            cash = cleaned.get("cash_amount") or 0
+            card = cleaned.get("card_amount") or 0
+            if not cash and not card:
+                self.add_error("cash_amount", "Ingresa los montos de efectivo y tarjeta.")
+            elif self.order_total and (cash + card) < self.order_total:
+                self.add_error("cash_amount", f"La suma debe ser al menos ${self.order_total}.")
         return cleaned
+
+
+class DiscountForm(forms.Form):
+    discount_type = forms.ChoiceField(
+        choices=[("percentage", "Porcentaje %"), ("fixed", "Monto fijo $")],
+        widget=forms.RadioSelect(attrs={"class": "h-4 w-4 text-brand-600 focus:ring-brand-600"}),
+    )
+    discount_value = forms.DecimalField(
+        min_value=0,
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            "class": INPUT_CLASS, "step": "0.01", "min": "0", "placeholder": "0.00",
+        }),
+    )
+    discount_reason = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "Motivo del descuento o cortesía"}),
+    )

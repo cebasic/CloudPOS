@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Aplicar Descuento — Orden #{{ order.pk }}{% endblock %}
+{% block page_title %}Descuento · Orden #{{ order.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg" x-data="discountForm">
+    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-700 flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z"/>
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-sm font-semibold text-slate-200">Descuento / Cortesía</h2>
+                <p class="text-xs text-slate-500">Subtotal: <span class="font-medium text-slate-300">${{ order.subtotal }}</span></p>
+            </div>
+        </div>
+
+        <form method="post" class="px-6 py-5 space-y-5">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3">
+                {% for field, errors in form.errors.items %}{% for error in errors %}
+                <p class="text-sm text-red-400">{{ error }}</p>
+                {% endfor %}{% endfor %}
+            </div>
+            {% endif %}
+
+            {# Type selector #}
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-2">Tipo de descuento</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="relative flex cursor-pointer rounded-xl border-2 p-4 transition-all"
+                           :class="discountType === 'percentage' ? 'border-yellow-500 bg-yellow-500/10' : 'border-slate-600 bg-slate-700 hover:border-slate-500'">
+                        <input type="radio" name="discount_type" value="percentage" class="sr-only" x-model="discountType">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-2xl font-bold" :class="discountType==='percentage' ? 'text-yellow-300' : 'text-slate-400'">%</span>
+                            <span class="text-xs font-semibold" :class="discountType==='percentage' ? 'text-yellow-300' : 'text-slate-300'">Porcentaje</span>
+                        </div>
+                        <svg x-show="discountType==='percentage'" class="absolute top-2 right-2 h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+                    </label>
+
+                    <label class="relative flex cursor-pointer rounded-xl border-2 p-4 transition-all"
+                           :class="discountType === 'fixed' ? 'border-yellow-500 bg-yellow-500/10' : 'border-slate-600 bg-slate-700 hover:border-slate-500'">
+                        <input type="radio" name="discount_type" value="fixed" class="sr-only" x-model="discountType">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-2xl font-bold" :class="discountType==='fixed' ? 'text-yellow-300' : 'text-slate-400'">$</span>
+                            <span class="text-xs font-semibold" :class="discountType==='fixed' ? 'text-yellow-300' : 'text-slate-300'">Monto fijo</span>
+                        </div>
+                        <svg x-show="discountType==='fixed'" class="absolute top-2 right-2 h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1.5">
+                    Valor del descuento
+                    <span class="text-slate-500" x-text="discountType === 'percentage' ? '(%)' : '($)'"></span>
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm"
+                          x-text="discountType === 'percentage' ? '%' : '$'"></span>
+                    <input type="number" name="discount_value" step="0.01" min="0"
+                           :max="discountType === 'percentage' ? 100 : ''"
+                           x-model.number="discountValue"
+                           value="{{ form.discount_value.value|default:'' }}"
+                           class="block w-full rounded-lg border border-slate-600 bg-slate-700 pl-7 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                           placeholder="0">
+                </div>
+                {# Quick pct selectors #}
+                <div x-show="discountType === 'percentage'" x-transition class="flex gap-2 mt-2">
+                    <template x-for="pct in [5, 10, 15, 25, 50, 100]">
+                        <button type="button" @click="discountValue = pct"
+                                class="rounded-md px-2 py-1 text-xs font-medium transition-colors"
+                                :class="discountValue === pct ? 'bg-yellow-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'"
+                                x-text="pct + '%'">
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1.5">Motivo</label>
+                <input type="text" name="discount_reason"
+                       value="{{ form.discount_reason.value|default:order.discount_reason }}"
+                       class="block w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                       placeholder="Cortesía, cliente frecuente, error en cocina...">
+            </div>
+
+            {# Live preview #}
+            <div x-show="discountValue > 0" x-transition
+                 class="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 space-y-1.5">
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">Subtotal</span>
+                    <span class="text-slate-200">${{ order.subtotal }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-yellow-400">Descuento</span>
+                    <span class="text-yellow-400" x-text="'-$' + calcDiscount()"></span>
+                </div>
+                <div class="flex justify-between text-sm font-bold border-t border-yellow-500/20 pt-1.5 mt-1.5">
+                    <span class="text-slate-200">Total final</span>
+                    <span class="text-white" x-text="'$' + calcFinal()"></span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-3 border-t border-slate-700">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-lg bg-yellow-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-yellow-700 transition-colors">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Aplicar Descuento
+                </button>
+                <a href="{% url 'orders:checkout' order.pk %}" class="text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    var SUBTOTAL = parseFloat("{{ order.subtotal|stringformat:'.2f' }}");
+    Alpine.data('discountForm', () => ({
+        discountType: '{% if order.discount_type != "none" %}{{ order.discount_type }}{% else %}percentage{% endif %}',
+        discountValue: {{ order.discount_value|default:0 }},
+        calcDiscount() {
+            if (this.discountType === 'percentage') return Math.min(SUBTOTAL * this.discountValue / 100, SUBTOTAL).toFixed(2);
+            return Math.min(parseFloat(this.discountValue) || 0, SUBTOTAL).toFixed(2);
+        },
+        calcFinal() { return (SUBTOTAL - parseFloat(this.calcDiscount())).toFixed(2); }
+    }));
+});
+</script>
+{% endblock %}
