@@ -1,7 +1,7 @@
 from django import forms
 from .models import Category, MenuItem
 
-INPUT_CLASS = "block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm"
+INPUT_CLASS = "block w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
 
 
 class CategoryForm(forms.ModelForm):
@@ -24,6 +24,6 @@ class MenuItemForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": INPUT_CLASS}),
             "description": forms.Textarea(attrs={"class": INPUT_CLASS, "rows": 3}),
             "price": forms.NumberInput(attrs={"class": INPUT_CLASS, "step": "0.01"}),
-            "available": forms.CheckboxInput(attrs={"class": "h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-600"}),
+            "available": forms.CheckboxInput(attrs={"class": "h-4 w-4 rounded border-slate-500 bg-slate-700 text-brand-500 focus:ring-brand-500"}),
             "image": forms.ClearableFileInput(attrs={"class": INPUT_CLASS}),
         }

@@ -1,16 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Eliminar Categoria - CocosBarrancos{% endblock %}
-{% block page_title %}Eliminar Categoria{% endblock %}
+{% block title %}Eliminar Categoría - CocosBarrancos{% endblock %}
+{% block page_title %}Eliminar Categoría{% endblock %}
 
 {% block content %}
 <div class="max-w-lg">
-    <div class="bg-white shadow ring-1 ring-gray-200 sm:rounded-lg p-6">
-        <p class="text-gray-700 mb-2">Estas seguro de que deseas eliminar la categoria <strong>{{ category.name }}</strong>?</p>
-        <p class="text-sm text-red-600 mb-6">Se eliminaran todos los platillos asociados.</p>
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            </div>
+            <h3 class="text-base font-semibold text-white">¿Eliminar esta categoría?</h3>
+        </div>
+        <p class="text-slate-300 mb-2">Estás a punto de eliminar la categoría <strong class="text-white">{{ category.name }}</strong>.</p>
+        <p class="text-sm text-red-400 mb-6">Se eliminarán todos los platillos asociados. Esta acción no se puede deshacer.</p>
         <form method="post" class="flex items-center gap-3">
             {% csrf_token %}
-            <button type="submit" class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Eliminar</button>
-            <a href="{% url 'menu:category_list' %}" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</a>
+            <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors">Eliminar</button>
+            <a href="{% url 'menu:category_list' %}" class="text-sm text-slate-400 hover:text-slate-200">Cancelar</a>
         </form>
     </div>
 </div>

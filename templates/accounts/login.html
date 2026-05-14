@@ -1,32 +1,78 @@
 {% extends "base.html" %}
-{% block title %}Iniciar Sesion - CocosBarrancos{% endblock %}
+{% block title %}Iniciar Sesión — CocosBarrancos{% endblock %}
 
 {% block body %}
-<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 bg-gray-50">
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-        <h1 class="text-center text-3xl font-bold text-brand-600">CocosBarrancos</h1>
-        <h2 class="mt-4 text-center text-xl font-semibold text-gray-900">Iniciar Sesion</h2>
-    </div>
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-sm">
-        {% if form.errors %}
-        <div class="mb-4 rounded-md bg-red-50 p-4">
-            <p class="text-sm text-red-700">Usuario o contrasena incorrectos.</p>
+<div class="min-h-screen flex bg-slate-900">
+    {# Left panel - brand #}
+    <div class="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-slate-900 to-slate-800">
+        <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-1.5-.75m16.5 0v-2.25A2.25 2.25 0 0 0 21 15H3a2.25 2.25 0 0 0-2.25 2.25v2.25"/>
+                </svg>
+            </div>
+            <span class="text-xl font-bold text-white">CocosBarrancos</span>
         </div>
-        {% endif %}
-        <form method="post" class="space-y-5">
-            {% csrf_token %}
-            <div>
-                <label for="id_username" class="block text-sm font-medium text-gray-700">Usuario</label>
-                <div class="mt-1">{{ form.username }}</div>
+        <div>
+            <h1 class="text-4xl font-bold text-white leading-tight mb-4">Sistema de Gestión<br>de Restaurante</h1>
+            <p class="text-slate-400 text-lg">Gestión de órdenes, cocina y pagos en tiempo real.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <p class="text-2xl font-bold text-brand-400">⚡</p>
+                <p class="text-xs text-slate-400 mt-1">Tiempo real</p>
             </div>
-            <div>
-                <label for="id_password" class="block text-sm font-medium text-gray-700">Contrasena</label>
-                <div class="mt-1">{{ form.password }}</div>
+            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <p class="text-2xl font-bold text-brand-400">👨‍🍳</p>
+                <p class="text-xs text-slate-400 mt-1">Cocina conectada</p>
             </div>
-            <button type="submit" class="flex w-full justify-center rounded-md bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">
-                Entrar
-            </button>
-        </form>
+            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <p class="text-2xl font-bold text-brand-400">📊</p>
+                <p class="text-xs text-slate-400 mt-1">Reportes</p>
+            </div>
+        </div>
+    </div>
+
+    {# Right panel - login form #}
+    <div class="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-white">
+        <div class="w-full max-w-sm">
+            <div class="mb-8 lg:hidden flex items-center gap-2 justify-center">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
+                    <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-1.5-.75m16.5 0v-2.25A2.25 2.25 0 0 0 21 15H3a2.25 2.25 0 0 0-2.25 2.25v2.25"/>
+                    </svg>
+                </div>
+                <span class="text-lg font-bold text-slate-800">CocosBarrancos</span>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Bienvenido</h2>
+            <p class="text-sm text-slate-500 mb-8">Ingresa tus credenciales para continuar</p>
+
+            {% if form.errors %}
+            <div class="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-center gap-3">
+                <svg class="h-5 w-5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                <p class="text-sm text-red-700 font-medium">Usuario o contraseña incorrectos.</p>
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label for="id_username" class="block text-sm font-semibold text-slate-700 mb-1.5">Usuario</label>
+                    <input type="text" name="username" id="id_username" autocomplete="username" autofocus required
+                           class="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all"
+                           placeholder="Ingresa tu usuario">
+                </div>
+                <div>
+                    <label for="id_password" class="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
+                    <input type="password" name="password" id="id_password" autocomplete="current-password" required
+                           class="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all"
+                           placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full rounded-xl bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600 transition-colors shadow-sm mt-2">
+                    Iniciar Sesión
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
