@@ -1,77 +1,127 @@
 {% extends "base.html" %}
-{% block title %}Iniciar Sesión — CocosBarrancos{% endblock %}
+{% block title %}Iniciar sesión — Cocos Barrancos{% endblock %}
+
+{% block extra_head %}
+<style>
+.login-shell{
+  min-height:100vh; display:grid; grid-template-columns: 1.05fr 1fr;
+  background: var(--paper);
+}
+@media (max-width: 900px){ .login-shell{grid-template-columns:1fr} .login-art{display:none} }
+.login-art{
+  position:relative; overflow:hidden;
+  background:
+    radial-gradient(60% 80% at 30% 20%, rgba(229,138,110,.2) 0%, transparent 60%),
+    radial-gradient(50% 60% at 80% 90%, rgba(107,142,90,.2) 0%, transparent 55%),
+    linear-gradient(180deg,#1B1815, #322820);
+  color:#FAF6EE; padding:48px;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+.login-art .brand-row{display:flex;align-items:center;gap:12px}
+.login-art .mark{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(160deg,#E58A6E,#C8553D 60%,#8E3320);
+  display:grid;place-items:center;color:#FAF6EE;
+  font-weight:800;font-size:22px;letter-spacing:-0.02em;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 6px 14px -6px rgba(200,85,61,0.65);
+}
+.login-art .nm{font-weight:700;font-size:20px;letter-spacing:-0.02em}
+.login-art .big{
+  font-weight:800; font-size:84px; line-height:0.95; letter-spacing:-0.04em;
+  max-width: 540px;
+}
+.login-art .big em{font-style:normal; color:var(--terracotta-3); font-weight:800}
+.login-art .lead{max-width:440px;margin-top:18px;color:var(--espresso-ink-2);line-height:1.5;font-size:14px}
+.login-art .meta{display:flex;gap:28px;font-size:12.5px;color:var(--espresso-ink-2);flex-wrap:wrap}
+.login-art .meta div b{display:block;color:#FAF6EE;font-family:var(--mono);font-size:20px;font-weight:500;letter-spacing:-0.01em;margin-bottom:2px}
+.login-art .stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 12px); pointer-events:none}
+
+.login-form{display:flex;align-items:center;justify-content:center;padding:48px 24px}
+.login-form .inner{width:100%;max-width:360px}
+.login-form h2{font-weight:800; font-size:36px; letter-spacing:-0.035em; margin:0 0 6px}
+.login-form p.sub{color:var(--ink-3); margin: 0 0 28px}
+.login-form label{font-size:12px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--ink-2); display:block; margin: 14px 0 6px}
+.login-form input{
+  width:100%; padding:12px 14px; border:1px solid var(--hairline); border-radius:12px;
+  font-size:14px; background:#fff; color:var(--ink); outline:0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.login-form input:focus{border-color:var(--terracotta); box-shadow:0 0 0 4px rgba(200,85,61,0.15)}
+.login-form button.submit{
+  margin-top:22px; width:100%; padding:13px; border-radius:12px;
+  background:var(--terracotta); color:#FAF6EE; font-weight:600; font-size:14px;
+  transition: background .15s, transform .12s;
+}
+.login-form button.submit:hover{background:var(--terracotta-2);transform:translateY(-1px)}
+.login-form .alt{font-size:12px;color:var(--ink-3);margin-top:14px;text-align:center}
+.login-err{
+  margin-bottom:18px; border-radius:12px; padding:11px 14px;
+  background:#F4DDE1; border:1px solid #E0AFB8; color:#7A3947;
+  display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600;
+}
+.login-mobile-brand{display:none}
+@media (max-width:900px){
+  .login-mobile-brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+  .login-mobile-brand .mark{
+    width:34px;height:34px;border-radius:9px;
+    background:linear-gradient(160deg,#E58A6E,#C8553D 60%,#8E3320);
+    display:grid;place-items:center;color:#FAF6EE;font-weight:800;font-size:17px;
+  }
+  .login-mobile-brand .nm{font-weight:700;font-size:16px;letter-spacing:-0.02em}
+}
+</style>
+{% endblock %}
 
 {% block body %}
-<div class="min-h-screen flex bg-slate-900">
-    {# Left panel - brand #}
-    <div class="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-slate-900 to-slate-800">
-        <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500">
-                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-1.5-.75m16.5 0v-2.25A2.25 2.25 0 0 0 21 15H3a2.25 2.25 0 0 0-2.25 2.25v2.25"/>
-                </svg>
-            </div>
-            <span class="text-xl font-bold text-white">CocosBarrancos</span>
+<div class="login-shell">
+    {# Panel arte — espresso #}
+    <div class="login-art">
+        <div class="brand-row">
+            <div class="mark">C</div>
+            <div class="nm">Cocos Barrancos</div>
         </div>
         <div>
-            <h1 class="text-4xl font-bold text-white leading-tight mb-4">Sistema de Gestión<br>de Restaurante</h1>
-            <p class="text-slate-400 text-lg">Gestión de órdenes, cocina y pagos en tiempo real.</p>
+            <div class="big">Casa.<br>Mar.<br><em>Brasa.</em></div>
+            <p class="lead">
+                Sistema operativo del restaurante. Órdenes, cocina y caja en vivo — desde el primer mezcal hasta el último postre.
+            </p>
         </div>
-        <div class="grid grid-cols-3 gap-4">
-            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                <p class="text-2xl font-bold text-brand-400">⚡</p>
-                <p class="text-xs text-slate-400 mt-1">Tiempo real</p>
-            </div>
-            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                <p class="text-2xl font-bold text-brand-400">👨‍🍳</p>
-                <p class="text-xs text-slate-400 mt-1">Cocina conectada</p>
-            </div>
-            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                <p class="text-2xl font-bold text-brand-400">📊</p>
-                <p class="text-xs text-slate-400 mt-1">Reportes</p>
-            </div>
+        {% comment %} Oculto temporalmente — restaurar quitando este comment
+        <div class="meta">
+            <div><b>4 años</b>de servicio continuo</div>
+            <div><b>142</b>comensales esta noche</div>
+            <div><b>03:00</b>cierre de caja</div>
         </div>
+        {% endcomment %}
+        <div class="stripes"></div>
     </div>
 
-    {# Right panel - login form #}
-    <div class="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-white">
-        <div class="w-full max-w-sm">
-            <div class="mb-8 lg:hidden flex items-center gap-2 justify-center">
-                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500">
-                    <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-3 0 3.354 3.354 0 0 0-3 0 3.354 3.354 0 0 1-1.5-.75m16.5 0v-2.25A2.25 2.25 0 0 0 21 15H3a2.25 2.25 0 0 0-2.25 2.25v2.25"/>
-                    </svg>
-                </div>
-                <span class="text-lg font-bold text-slate-800">CocosBarrancos</span>
+    {# Panel formulario #}
+    <div class="login-form">
+        <div class="inner">
+            <div class="login-mobile-brand">
+                <div class="mark">C</div>
+                <div class="nm">Cocos Barrancos</div>
             </div>
-            <h2 class="text-2xl font-bold text-slate-800 mb-1">Bienvenido</h2>
-            <p class="text-sm text-slate-500 mb-8">Ingresa tus credenciales para continuar</p>
+            <h2>Bienvenido.</h2>
+            <p class="sub">Ingresa tus credenciales para abrir el servicio.</p>
 
             {% if form.errors %}
-            <div class="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-center gap-3">
-                <svg class="h-5 w-5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                <p class="text-sm text-red-700 font-medium">Usuario o contraseña incorrectos.</p>
+            <div class="login-err">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                Usuario o contraseña incorrectos.
             </div>
             {% endif %}
 
-            <form method="post" class="space-y-4">
+            <form method="post">
                 {% csrf_token %}
-                <div>
-                    <label for="id_username" class="block text-sm font-semibold text-slate-700 mb-1.5">Usuario</label>
-                    <input type="text" name="username" id="id_username" autocomplete="username" autofocus required
-                           class="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all"
-                           placeholder="Ingresa tu usuario">
-                </div>
-                <div>
-                    <label for="id_password" class="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
-                    <input type="password" name="password" id="id_password" autocomplete="current-password" required
-                           class="block w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all"
-                           placeholder="••••••••">
-                </div>
-                <button type="submit" class="w-full rounded-xl bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600 transition-colors shadow-sm mt-2">
-                    Iniciar Sesión
-                </button>
+                <label for="id_username">Usuario</label>
+                <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
+                <label for="id_password">Contraseña</label>
+                <input type="password" name="password" id="id_password" autocomplete="current-password" required placeholder="••••••••">
+                <button type="submit" class="submit">Iniciar sesión</button>
             </form>
+            <p class="alt">¿Olvidaste tu contraseña? Pregunta al administrador.</p>
         </div>
     </div>
 </div>

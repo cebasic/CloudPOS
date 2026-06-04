@@ -1,186 +1,161 @@
 {% extends "base.html" %}
-{% block title %}Orden #{{ order.pk }} — CocosBarrancos{% endblock %}
-{% block page_title %}Orden #{{ order.pk }} · Mesa {{ order.table.number }}{% endblock %}
+{% block title %}Orden #{{ order.pk }} — Cocos Barrancos{% endblock %}
+{% block page_title %}Órdenes › #{{ order.pk }}{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="view-fade">
 
-    {# Main column #}
-    <div class="lg:col-span-2 space-y-4">
+<div class="page-head">
+    <div>
+        <h1>Orden <em>#{{ order.pk }}</em> · Mesa {{ order.table.number }}</h1>
+        <p class="sub">{{ order.waiter.get_full_name|default:order.waiter.username }} · Abierta {{ order.created_at|time:"H:i" }}{% if order.notes %} · con notas{% endif %}</p>
+    </div>
+    <div class="right">
+        {% if order.status == 'pending' %}<span class="status-pill gold"><i></i> Pendiente</span>
+        {% elif order.status == 'in_progress' %}<span class="status-pill ocean"><i></i> En cocina</span>
+        {% elif order.status == 'ready' %}<span class="status-pill sage"><i></i> Lista</span>
+        {% elif order.status == 'delivered' %}<span class="status-pill berry"><i></i> Entregada</span>
+        {% elif order.status == 'closed' %}<span class="status-pill"><i></i> Cerrada</span>
+        {% else %}<span class="status-pill berry"><i></i> Cancelada</span>{% endif %}
 
-        {# Status bar #}
-        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <span class="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold
-                    {% if order.status == 'pending' %}bg-yellow-500/10 text-yellow-400
-                    {% elif order.status == 'in_progress' %}bg-blue-500/10 text-blue-400
-                    {% elif order.status == 'ready' %}bg-emerald-500/10 text-emerald-400
-                    {% elif order.status == 'delivered' %}bg-purple-500/10 text-purple-400
-                    {% elif order.status == 'closed' %}bg-slate-700 text-slate-400
-                    {% else %}bg-red-500/10 text-red-400{% endif %}">
-                    {{ order.get_status_display }}
-                </span>
-                <div class="text-sm text-slate-400">
-                    <span class="font-medium text-slate-200">{{ order.waiter.get_full_name|default:order.waiter.username }}</span>
-                    · Mesa <span class="font-medium text-slate-200">{{ order.table.number }}</span>
-                </div>
-            </div>
-            {% if order.status != 'closed' and order.status != 'cancelled' %}
-            <div class="flex flex-wrap gap-2">
-                {% if order.status == 'delivered' or order.status == 'ready' or order.status == 'in_progress' %}
-                <a href="{% url 'orders:checkout' order.pk %}" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-                    Cobrar
-                </a>
-                {% endif %}
-                {% if order.status == 'ready' %}
-                <form method="post" action="{% url 'orders:update_status' order.pk %}">
-                    {% csrf_token %}<input type="hidden" name="status" value="delivered">
-                    <button class="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-700 transition-colors">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
-                        Entregada
-                    </button>
-                </form>
-                {% endif %}
-                <form method="post" action="{% url 'orders:update_status' order.pk %}" onsubmit="return confirm('¿Cancelar esta orden?')">
-                    {% csrf_token %}<input type="hidden" name="status" value="cancelled">
-                    <button class="inline-flex items-center gap-1.5 rounded-lg border border-red-800 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-colors">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
-                        Cancelar
-                    </button>
-                </form>
-            </div>
+        {% if order.status != 'closed' and order.status != 'cancelled' %}
+            {% if order.status == 'ready' %}
+            <form method="post" action="{% url 'orders:update_status' order.pk %}" style="display:inline">
+                {% csrf_token %}<input type="hidden" name="status" value="delivered">
+                <button class="cta">
+                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>
+                    Entregada
+                </button>
+            </form>
             {% endif %}
-            {% if order.status == 'closed' %}
-            <a href="{% url 'orders:receipt' order.pk %}" class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
-                Ver recibo
+            {% if order.status == 'delivered' or order.status == 'ready' or order.status == 'in_progress' %}
+            <a href="{% url 'orders:checkout' order.pk %}" class="cta primary">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M7 6V4h10v2"/></svg>
+                Cobrar — ${{ order.total }}
             </a>
             {% endif %}
-        </div>
-
-        {# Items table #}
-        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-slate-300">Items de la orden</h2>
-                <span id="items-update-badge" class="hidden text-xs text-brand-400 font-medium animate-pulse">Actualizando...</span>
-            </div>
-            <table class="min-w-full">
-                <thead>
-                    <tr class="bg-slate-900/50">
-                        <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Platillo</th>
-                        <th class="px-4 py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Cant.</th>
-                        <th class="px-4 py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
-                        <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtotal</th>
-                        <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="items-tbody" class="divide-y divide-slate-700">
-                    {% include "orders/partials/items_table.html" %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if order.notes %}
-        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
-            <p class="text-xs font-semibold text-amber-400 mb-1">Notas de la orden</p>
-            <p class="text-sm text-amber-200">{{ order.notes }}</p>
-        </div>
+            <form method="post" action="{% url 'orders:update_status' order.pk %}" onsubmit="return confirm('¿Cancelar esta orden?')" style="display:inline">
+                {% csrf_token %}<input type="hidden" name="status" value="cancelled">
+                <button class="btn danger">Cancelar</button>
+            </form>
+        {% endif %}
+        {% if order.status == 'closed' %}
+        <a href="{% url 'orders:receipt' order.pk %}" class="btn">Ver recibo</a>
         {% endif %}
     </div>
+</div>
 
-    {# Sidebar #}
-    <div class="space-y-4">
+{% if order.notes %}
+<div class="notebox" style="margin-bottom:18px">"{{ order.notes }}"</div>
+{% endif %}
+
+<div class="detail">
+    {# Items #}
+    <div class="card" style="align-self:start">
+        <div class="card-head">
+            <h2>Items <em>de la orden</em></h2>
+            <span class="meta">{{ order.items.count }} platillo{{ order.items.count|pluralize }} <span id="items-update-badge" class="hidden" style="color:var(--terracotta-2)">· actualizando…</span></span>
+        </div>
+        <div class="thead">
+            <div>Platillo</div>
+            <div>Cant.</div>
+            <div>Estado</div>
+            <div style="text-align:right">Subtotal</div>
+            <div></div>
+        </div>
+        <div id="items-tbody">
+            {% include "orders/partials/items_table.html" %}
+        </div>
+    </div>
+
+    {# Resumen + agregar #}
+    <div>
+        <div class="summary">
+            <h3>Resumen</h3>
+            <p class="sub">{{ order.items.count }} item{{ order.items.count|pluralize }} · Mesa {{ order.table.number }}</p>
+            <div class="sline"><span>Subtotal</span><span class="v">${{ order.subtotal }}</span></div>
+            {% if order.discount_amount %}
+            <div class="sline"><span>Descuento{% if order.discount_reason %} · {{ order.discount_reason }}{% endif %}</span><span class="v">−${{ order.discount_amount }}</span></div>
+            {% endif %}
+            <div class="stot"><span class="l">Total</span><span class="v">${{ order.total }}<span style="font-family:var(--sans);font-size:13px;color:var(--ink-3);margin-left:6px">MXN</span></span></div>
+            {% if order.status != 'closed' and order.status != 'cancelled' %}
+            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}
+            <a href="{% url 'orders:apply_discount' order.pk %}" class="btn ghost sm" style="margin-top:10px"
+               hx-get="{% url 'orders:apply_discount' order.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
+                % Aplicar descuento / cortesía
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+
         {% if order.status != 'closed' and order.status != 'cancelled' %}
-        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-700">
-                <h3 class="text-sm font-semibold text-slate-300">Agregar Item</h3>
+        <div class="addbox">
+            <h3>Agregar item</h3>
+            <div class="field">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input type="text" id="item-search" placeholder="Buscar platillo, ej: ceviche">
             </div>
-            <div class="p-4">
-                {# Live search #}
-                <div class="relative mb-3">
-                    <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z"/></svg>
-                    <input type="text" id="item-search" placeholder="Buscar platillo..."
-                           class="w-full rounded-lg border border-slate-600 bg-slate-700 pl-9 pr-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
+            <form method="post" action="{% url 'orders:add_item' order.pk %}" class="form-grid">
+                {% csrf_token %}
+                <div class="fg">
+                    <select name="menu_item" id="menu-item-select" required class="select">
+                        <option value="">— Selecciona un platillo —</option>
+                        {% for item in item_form.menu_item.field.queryset %}
+                        <option value="{{ item.pk }}" data-search="{{ item.name|lower }}">{{ item.name }} — ${{ item.price }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <form method="post" action="{% url 'orders:add_item' order.pk %}" class="space-y-3">
-                    {% csrf_token %}
-                    <div>
-                        <select name="menu_item" id="menu-item-select" required
-                                class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
-                            <option value="">— Selecciona un platillo —</option>
-                            {% for item in item_form.menu_item.field.queryset %}
-                            <option value="{{ item.pk }}" data-search="{{ item.name|lower }}">{{ item.name }} — ${{ item.price }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Cantidad</label>
-                            <input type="number" name="quantity" value="1" min="1" max="20"
-                                   class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Notas</label>
-                            <input type="text" name="notes" placeholder="Opcional"
-                                   class="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
+                <div class="form-grid cols-2">
+                    <div class="fg">
+                        <label>Cantidad</label>
+                        <div class="stepper">
+                            <button type="button" data-step="-1">−</button>
+                            <input type="number" name="quantity" value="1" min="1" max="20">
+                            <button type="button" data-step="1">+</button>
                         </div>
                     </div>
-                    <button type="submit" class="w-full rounded-lg bg-brand-500 px-3 py-2.5 text-sm font-bold text-white hover:bg-brand-600 transition-colors flex items-center justify-center gap-2">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                        Agregar a la orden
-                    </button>
-                </form>
-            </div>
+                    <div class="fg">
+                        <label>Notas</label>
+                        <input type="text" name="notes" placeholder="Opcional" class="input">
+                    </div>
+                </div>
+                <button type="submit" class="btn primary" style="justify-content:center">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+                    Agregar a la orden
+                </button>
+            </form>
         </div>
         {% endif %}
 
-        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 space-y-2">
-            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Detalles</h3>
-            <div class="flex justify-between text-sm">
-                <span class="text-slate-500">Mesa</span>
-                <span class="font-medium text-slate-200">{{ order.table.number }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-                <span class="text-slate-500">Mesero</span>
-                <span class="font-medium text-slate-200">{{ order.waiter.get_full_name|default:order.waiter.username }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-                <span class="text-slate-500">Creada</span>
-                <span class="font-medium text-slate-200">{{ order.created_at|date:"H:i" }}</span>
-            </div>
-            <div class="flex justify-between text-sm border-t border-slate-700 pt-2 mt-2">
-                <span class="font-semibold text-slate-300">Total</span>
-                <span class="font-bold text-lg text-white">${{ order.total }}</span>
-            </div>
-        </div>
-
-        <a href="{% url 'orders:dashboard' %}" class="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
-            Volver a órdenes
+        <a href="{% url 'orders:dashboard' %}" class="btn ghost" style="margin-top:14px">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+            Volver al Restaurant
         </a>
     </div>
 </div>
 
-{# Live search script #}
+{# Live search del buscador de platillos #}
 <script>
-document.getElementById('item-search').addEventListener('input', function() {
-    var q = this.value.toLowerCase().trim();
+(function(){
+    var search = document.getElementById('item-search');
+    if (!search) return;
     var select = document.getElementById('menu-item-select');
-    var options = select.querySelectorAll('option[data-search]');
-    options.forEach(function(opt) {
-        var match = !q || opt.dataset.search.includes(q);
-        opt.style.display = match ? '' : 'none';
+    search.addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        var options = select.querySelectorAll('option[data-search]');
+        options.forEach(function(opt) {
+            opt.style.display = (!q || opt.dataset.search.includes(q)) ? '' : 'none';
+        });
+        if (q) select.size = Math.min(options.length, 8);
+        else select.size = 1;
     });
-    if (q) select.size = Math.min(options.length, 8);
-    else select.size = 1;
-});
-document.getElementById('item-search').addEventListener('blur', function() {
-    setTimeout(function() { document.getElementById('menu-item-select').size = 1; }, 200);
-});
+    search.addEventListener('blur', function() {
+        setTimeout(function() { select.size = 1; }, 200);
+    });
+})();
 </script>
 
-{# WebSocket: smart partial update for this order #}
+{# WebSocket: actualización en vivo de items #}
 {% if order.status != 'closed' and order.status != 'cancelled' %}
 <script>
 (function() {
@@ -215,4 +190,6 @@ document.getElementById('item-search').addEventListener('blur', function() {
 })();
 </script>
 {% endif %}
+
+</div>
 {% endblock %}

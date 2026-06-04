@@ -3,92 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cocina — CocosBarrancos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Cocina — Cocos Barrancos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #0b0f19; color: #e2e8f0; font-family: system-ui, sans-serif; }
-        .col-header { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; }
-        .order-card { background: #1e2433; border-radius: 0.75rem; padding: 0.875rem; border-left: 4px solid transparent; transition: transform 0.15s; }
-        .order-card:hover { transform: translateY(-1px); }
-        .item-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #2d3748; }
-        .item-row:last-child { border-bottom: none; }
-        .timer { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 9999px; }
-        .timer-ok { background: #065f46; color: #6ee7b7; }
-        .timer-warn { background: #78350f; color: #fcd34d; }
-        .timer-urgent { background: #7f1d1d; color: #fca5a5; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
-        .btn-prepare { background: #2563eb; color: white; font-size: 0.7rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 0.375rem; border: none; cursor: pointer; }
-        .btn-prepare:hover { background: #1d4ed8; }
-        .btn-ready { background: #059669; color: white; font-size: 0.7rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 0.375rem; border: none; cursor: pointer; }
-        .btn-ready:hover { background: #047857; }
-        .badge-done { background: #064e3b; color: #6ee7b7; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 9999px; }
-        .col-pending { border-top: 3px solid #f59e0b; }
-        .col-preparing { border-top: 3px solid #3b82f6; }
-        .col-ready { border-top: 3px solid #10b981; }
-        .empty-col { text-align: center; color: #4b5563; padding: 2rem 0; font-size: 0.85rem; }
-        .ws-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .ws-connected { background: #10b981; box-shadow: 0 0 6px #10b981; }
-        .ws-disconnected { background: #ef4444; }
-        .order-notes { font-size: 0.7rem; color: #9ca3af; font-style: italic; margin-top: 0.25rem; }
+        :root{
+            --paper:#FAF6EE; --paper-2:#F3ECDD; --hairline:#E0D6C2; --hairline-2:#D2C5AA;
+            --ink:#1B1815; --ink-2:#4A453E; --ink-3:#8A8278;
+            --terracotta:#C8553D; --terracotta-2:#B0432D;
+            --sage:#6B8E5A; --sage-2:#547548; --marigold:#D4A03A; --marigold-2:#B7872A;
+            --ocean:#3F7A8B; --berry:#A14E5E;
+            --shadow-sm: 0 1px 0 rgba(27,24,21,0.04), 0 1px 2px rgba(27,24,21,0.04);
+            --shadow: 0 1px 0 rgba(27,24,21,0.04), 0 8px 24px -12px rgba(27,24,21,0.12);
+            --sans:"Nunito",ui-sans-serif,system-ui,sans-serif;
+            --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+        }
+        *{box-sizing:border-box}
+        html,body{margin:0;padding:0;height:100%}
+        body{
+            background:
+                radial-gradient(1200px 600px at 80% -10%, #F8EFDC 0%, transparent 60%),
+                radial-gradient(900px 500px at -10% 90%, #F0E5D0 0%, transparent 55%),
+                var(--paper);
+            color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5;
+            -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
+        }
+        button{font:inherit;border:0;cursor:pointer;background:none;color:inherit;padding:0}
+        a{color:inherit;text-decoration:none}
+
+        /* Top bar */
+        .k-top{
+            display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+            margin:16px 16px 0; padding:14px 18px; background:#FFFDF9;
+            border:1px solid var(--hairline); border-radius:18px; box-shadow:var(--shadow-sm); flex:none;
+        }
+        .k-brand{display:flex;align-items:center;gap:10px}
+        .k-brand .mark{
+            width:34px;height:34px;border-radius:10px;
+            background:linear-gradient(160deg,#E58A6E,#C8553D 60%,#8E3320);
+            display:grid;place-items:center;color:#FAF6EE;font-weight:800;font-size:17px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 6px 14px -6px rgba(200,85,61,0.65);
+        }
+        .k-brand .t{font-weight:800;font-size:17px;letter-spacing:-0.02em}
+        .k-brand .t small{display:block;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+        .live{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--sage-2);font-weight:700}
+        .live i{width:8px;height:8px;border-radius:50%;background:var(--sage);box-shadow:0 0 0 4px rgba(107,142,90,0.2);animation:pulse 1.8s infinite}
+        .live.off{color:var(--berry)}
+        .live.off i{background:var(--berry);box-shadow:0 0 0 4px rgba(161,78,94,0.2);animation:none}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+        .clock{font-family:var(--mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+        .chip{
+            display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:0.04em;
+            padding:3px 9px;border-radius:999px;background:var(--paper-2);color:var(--ink-2);border:1px solid var(--hairline);
+        }
+        .backlink{
+            font-size:12px;font-weight:700;color:var(--ink-2);padding:7px 12px;
+            background:#fff;border:1px solid var(--hairline);border-radius:10px;box-shadow:var(--shadow-sm);
+        }
+        .backlink:hover{color:var(--ink);border-color:var(--hairline-2)}
+
+        /* Board */
+        .board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px;flex:1;overflow:hidden}
+        @media (max-width:1000px){ .board{grid-template-columns:1fr;overflow:auto} }
+        .col{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+        .col-h{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:12px 16px;border-radius:12px 12px 0 0;
+            font-size:11.5px;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;
+        }
+        .col-h .ct{font-family:var(--mono);font-size:11px;letter-spacing:0.04em;opacity:.75;text-transform:none}
+        .col.p .col-h{background:#FBF1D6;color:var(--marigold-2);border:1px solid #E6CC85;border-bottom:0}
+        .col.r .col-h{background:#E3EEF1;color:#2E5D6B;border:1px solid #B7CED5;border-bottom:0}
+        .col.d .col-h{background:#EEF4E3;color:var(--sage-2);border:1px solid #CFE0B7;border-bottom:0}
+        .kcards{
+            display:flex;flex-direction:column;gap:10px;padding:10px;flex:1;overflow-y:auto;
+            background:#FFFDF9;border:1px solid var(--hairline);border-top:0;border-radius:0 0 12px 12px;
+        }
+        .col.p .kcards{border-color:#E6CC85}
+        .col.r .kcards{border-color:#B7CED5}
+        .col.d .kcards{border-color:#CFE0B7}
+
+        .kcard{background:#fff;border:1px solid var(--hairline);border-radius:12px;padding:12px;transition:transform .15s, box-shadow .15s}
+        .kcard:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+        .kcard .top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px}
+        .kcard .mesa{font-weight:800;font-size:17px;line-height:1.2;letter-spacing:-0.025em}
+        .kcard .mesa small{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:6px;font-weight:500}
+        .kcard .who{font-size:11.5px;color:var(--ink-3);margin-top:2px}
+        .timer{
+            display:inline-flex;align-items:center;gap:6px;flex:none;
+            font-family:var(--mono);font-size:12.5px;font-weight:600;
+            padding:4px 9px;border-radius:999px;
+            background:#EEF4E3;color:var(--sage-2);border:1px solid #CFE0B7;
+        }
+        .timer.warn{background:#FBF1D6;color:var(--marigold-2);border-color:#E6CC85}
+        .timer.urgent{background:#F4DDE1;color:#7A3947;border-color:#E0AFB8;animation:pulse 1.2s infinite}
+        .notebox{font-size:12px;color:var(--ink-2);font-weight:600;padding:6px 10px;background:var(--paper-2);border-radius:8px;margin:6px 0 8px;border:1px solid var(--hairline)}
+        .kitems{display:flex;flex-direction:column;gap:2px}
+        .kitem{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px dashed var(--hairline)}
+        .kitem:last-child{border-bottom:0}
+        .kitem .nm{font-size:13.5px;font-weight:600}
+        .kitem .q{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-right:6px}
+        .kitem .note{font-size:11px;color:var(--ink-3);margin-top:2px}
+        .kbtn{
+            padding:5px 11px;border-radius:8px;font-size:11.5px;font-weight:700;
+            background:var(--ink);color:#FAF6EE;transition:transform .12s;white-space:nowrap;
+        }
+        .kbtn:hover{transform:translateY(-1px)}
+        .kbtn.go{background:var(--ocean)}
+        .kbtn.done{background:var(--sage-2)}
+        .kbtn.tick{background:transparent;color:var(--sage-2);border:1px solid #CFE0B7}
+        .empty-col{text-align:center;color:var(--ink-3);padding:32px 0;font-size:13px}
     </style>
 </head>
-<body class="h-full flex flex-col">
+<body>
 
-{# Top bar #}
-<header style="background:#131929; border-bottom:1px solid #1e2d3d;" class="flex items-center justify-between px-6 py-3 shrink-0">
-    <div class="flex items-center gap-3">
-        <div style="background:#ea580c; border-radius:0.5rem; padding:0.4rem;">
-            <svg style="width:1.25rem;height:1.25rem;color:white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z"/>
-            </svg>
-        </div>
-        <span style="font-size:1.1rem;font-weight:800;color:#f1f5f9;letter-spacing:-0.02em;">Pantalla de Cocina</span>
+{# Barra superior #}
+<header class="k-top">
+    <div class="k-brand">
+        <div class="mark">C</div>
+        <div class="t">Pantalla de cocina<small>Cocos Barrancos</small></div>
     </div>
-    <div style="display:flex;align-items:center;gap:1.5rem;">
-        <span id="clock" style="font-size:1.5rem;font-weight:700;color:#f1f5f9;letter-spacing:0.05em;font-variant-numeric:tabular-nums;"></span>
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-            <span class="ws-dot ws-disconnected" id="ws-dot"></span>
-            <span id="ws-label" style="font-size:0.75rem;color:#6b7280;">Conectando...</span>
-        </div>
-        <span id="order-count" style="font-size:0.75rem;color:#6b7280;"></span>
-        <a href="{% url 'orders:dashboard' %}" style="font-size:0.75rem;color:#6b7280;text-decoration:none;padding:0.4rem 0.75rem;background:#1e2433;border-radius:0.5rem;">← Volver</a>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <span class="live off" id="ws-live"><i></i><span id="ws-label">Conectando…</span></span>
+        <span class="chip" id="order-count"></span>
+        <span class="clock" id="clock"></span>
+        <a href="{% url 'orders:dashboard' %}" class="backlink">← Volver</a>
     </div>
 </header>
 
 {# Kanban #}
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;padding:1rem;flex:1;overflow:hidden;">
-
-    {# Pendientes #}
-    <div style="display:flex;flex-direction:column;overflow:hidden;">
-        <div class="col-header col-pending" style="background:#1c1a0e;color:#f59e0b;">
-            Pendientes <span id="pending-count" style="opacity:0.7;font-weight:400;"></span>
-        </div>
-        <div id="pending-col" style="background:#161a24;border-radius:0 0 0.75rem 0.75rem;padding:0.75rem;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+<div class="board">
+    <div class="col p">
+        <div class="col-h"><span>Pendientes</span><span class="ct" id="pending-count"></span></div>
+        <div id="pending-col" class="kcards">
             <div class="empty-col">Sin órdenes pendientes</div>
         </div>
     </div>
-
-    {# Preparando #}
-    <div style="display:flex;flex-direction:column;overflow:hidden;">
-        <div class="col-header col-preparing" style="background:#0d1829;color:#60a5fa;">
-            Preparando <span id="preparing-count" style="opacity:0.7;font-weight:400;"></span>
-        </div>
-        <div id="preparing-col" style="background:#0f1520;border-radius:0 0 0.75rem 0.75rem;padding:0.75rem;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+    <div class="col r">
+        <div class="col-h"><span>En preparación</span><span class="ct" id="preparing-count"></span></div>
+        <div id="preparing-col" class="kcards">
             <div class="empty-col">Nada preparándose</div>
         </div>
     </div>
-
-    {# Listos #}
-    <div style="display:flex;flex-direction:column;overflow:hidden;">
-        <div class="col-header col-ready" style="background:#0a1c14;color:#34d399;">
-            Listos para Servir <span id="ready-count" style="opacity:0.7;font-weight:400;"></span>
-        </div>
-        <div id="ready-col" style="background:#0c1a12;border-radius:0 0 0.75rem 0.75rem;padding:0.75rem;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+    <div class="col d">
+        <div class="col-h"><span>Listos para servir</span><span class="ct" id="ready-count"></span></div>
+        <div id="ready-col" class="kcards">
             <div class="empty-col">Sin items listos</div>
         </div>
     </div>
-
 </div>
 
 <script>
@@ -96,7 +159,7 @@
     var ws = null;
     var orders = [];
 
-    // Clock
+    // Reloj
     function updateClock() {
         var now = new Date();
         document.getElementById('clock').textContent =
@@ -105,21 +168,19 @@
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Timer helpers
+    // Timers
     function getElapsedMinutes(tsMs) {
         return Math.floor((Date.now() - tsMs) / 60000);
     }
     function timerClass(mins) {
-        if (mins < 10) return 'timer timer-ok';
-        if (mins < 20) return 'timer timer-warn';
-        return 'timer timer-urgent';
+        if (mins < 10) return 'timer';
+        if (mins < 20) return 'timer warn';
+        return 'timer urgent';
     }
     function timerLabel(mins) {
         if (mins < 1) return '<1 min';
         return mins + ' min';
     }
-
-    // Update all timers every 30s
     setInterval(function() {
         if (orders.length) render();
     }, 30000);
@@ -128,12 +189,12 @@
         var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         ws = new WebSocket(protocol + '//' + location.host + '/ws/kitchen/');
         ws.onopen = function() {
-            document.getElementById('ws-dot').className = 'ws-dot ws-connected';
-            document.getElementById('ws-label').textContent = 'En vivo';
+            document.getElementById('ws-live').className = 'live';
+            document.getElementById('ws-label').textContent = 'Conectado en vivo';
         };
         ws.onclose = function() {
-            document.getElementById('ws-dot').className = 'ws-dot ws-disconnected';
-            document.getElementById('ws-label').textContent = 'Reconectando...';
+            document.getElementById('ws-live').className = 'live off';
+            document.getElementById('ws-label').textContent = 'Reconectando…';
             setTimeout(connect, 3000);
         };
         ws.onmessage = function(e) {
@@ -164,8 +225,6 @@
             ? '<span class="' + timerClass(mins) + '">' + timerLabel(mins) + '</span>'
             : '';
 
-        var borderColor = columnType === 'pending' ? '#f59e0b' : columnType === 'preparing' ? '#3b82f6' : '#10b981';
-
         var itemsHtml = '';
         var hasItems = false;
         for (var i = 0; i < order.items.length; i++) {
@@ -174,38 +233,38 @@
             if (item.status !== targetStatus) continue;
             hasItems = true;
 
-            var notes = item.notes ? '<div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem;">' + esc(item.notes) + '</div>' : '';
+            var notes = item.notes ? '<div class="note">' + esc(item.notes) + '</div>' : '';
             var actionBtn = '';
             if (columnType === 'pending') {
-                actionBtn = '<button class="btn-prepare" onclick="sendItemStatus(' + item.id + ',\'preparing\',' + order.id + ')">Preparar</button>';
+                actionBtn = '<button class="kbtn go" onclick="sendItemStatus(' + item.id + ',\'preparing\',' + order.id + ')">Preparar</button>';
             } else if (columnType === 'preparing') {
-                actionBtn = '<button class="btn-ready" onclick="sendItemStatus(' + item.id + ',\'ready\',' + order.id + ')">✓ Listo</button>';
+                actionBtn = '<button class="kbtn done" onclick="sendItemStatus(' + item.id + ',\'ready\',' + order.id + ')">✓ Listo</button>';
             } else {
-                actionBtn = '<span class="badge-done">✓ Listo</span>';
+                actionBtn = '<span class="kbtn tick">✓ Listo</span>';
             }
 
-            itemsHtml += '<div class="item-row">' +
-                '<div style="min-width:0;">' +
-                '<div style="font-size:0.9rem;font-weight:600;color:#f1f5f9;">' + esc(item.quantity) + '× ' + esc(item.name) + '</div>' +
+            itemsHtml += '<div class="kitem">' +
+                '<div style="min-width:0">' +
+                '<div class="nm"><span class="q">' + esc(item.quantity) + '×</span>' + esc(item.name) + '</div>' +
                 notes +
                 '</div>' +
-                '<div style="margin-left:0.75rem;shrink:0;">' + actionBtn + '</div>' +
+                '<div>' + actionBtn + '</div>' +
                 '</div>';
         }
         if (!hasItems) return '';
 
-        var notesHtml = order.notes ? '<div class="order-notes">"' + esc(order.notes) + '"</div>' : '';
+        var notesHtml = order.notes ? '<div class="notebox">"' + esc(order.notes) + '"</div>' : '';
 
-        return '<div class="order-card" style="border-left-color:' + borderColor + ';">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">' +
+        return '<div class="kcard">' +
+            '<div class="top">' +
             '<div>' +
-            '<div style="font-size:0.85rem;font-weight:700;color:#f1f5f9;">Mesa ' + esc(String(order.table_number)) + ' <span style="color:#6b7280;font-weight:400;font-size:0.75rem;">#' + esc(String(order.id)) + '</span></div>' +
-            '<div style="font-size:0.7rem;color:#6b7280;">' + esc(order.waiter) + ' · ' + esc(order.created_at) + '</div>' +
-            notesHtml +
+            '<div class="mesa">Mesa ' + esc(String(order.table_number)) + '<small>#' + esc(String(order.id)) + '</small></div>' +
+            '<div class="who">' + esc(order.waiter) + ' · ' + esc(order.created_at) + '</div>' +
             '</div>' +
             timerHtml +
             '</div>' +
-            '<div>' + itemsHtml + '</div>' +
+            notesHtml +
+            '<div class="kitems">' + itemsHtml + '</div>' +
             '</div>';
     }
 
@@ -227,9 +286,9 @@
         var rc = readyCards.filter(Boolean).length;
 
         document.getElementById('order-count').textContent = orders.length + ' orden(es) activa(s)';
-        document.getElementById('pending-count').textContent = pc ? '(' + pc + ')' : '';
-        document.getElementById('preparing-count').textContent = prc ? '(' + prc + ')' : '';
-        document.getElementById('ready-count').textContent = rc ? '(' + rc + ')' : '';
+        document.getElementById('pending-count').textContent = pc ? pc + ' órdenes' : '';
+        document.getElementById('preparing-count').textContent = prc ? prc + ' órdenes' : '';
+        document.getElementById('ready-count').textContent = rc ? rc + ' órdenes' : '';
 
         var pc_html = pendingCards.filter(Boolean).join('');
         document.getElementById('pending-col').innerHTML = pc_html || '<div class="empty-col">Sin órdenes pendientes</div>';

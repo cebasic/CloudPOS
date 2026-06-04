@@ -1,35 +1,68 @@
-{% extends "base.html" %}
-{% block title %}{{ title }} - CocosBarrancos{% endblock %}
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% block title %}{{ title }} — Cocos Barrancos{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 
-{% block content %}
-<div class="max-w-2xl">
-    <form method="post" class="space-y-5 bg-slate-800 rounded-xl border border-slate-700 p-6">
-        {% csrf_token %}
-        {% for field in form %}
-        <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-300 mb-1.5">
-                {{ field.label }}
+{% block form_title %}{{ title }}{% endblock %}
+{% block form_subtitle %}{% if form.instance.pk %}Edita la cuenta del miembro del equipo{% else %}Crea una cuenta para un miembro del equipo{% endif %}{% endblock %}
+
+{% block form_body %}
+<div class="form-grid">
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.first_name.id_for_label }}">Nombre</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<span class="err">{{ form.first_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
+            <label for="{{ form.last_name.id_for_label }}">Apellido</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<span class="err">{{ form.last_name.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.username.id_for_label }}">Usuario</label>
+            {{ form.username }}
+            {% if form.username.errors %}<span class="err">{{ form.username.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
+            <label for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}<span class="err">{{ form.email.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="fg">
+        <label>Rol</label>
+        <div class="chip-pick accent" data-pick>
+            {% for value, label in form.fields.role.choices %}
+            <label class="{% if form.role.value == value %}on{% endif %}">
+                <input type="radio" name="role" value="{{ value }}" {% if form.role.value == value %}checked{% endif %} required>
+                {{ label }}
             </label>
-            {% if field.field.widget.input_type == 'checkbox' %}
-            <div class="flex items-center gap-2">
-                {{ field }}
-                <span class="text-sm text-slate-400">{{ field.help_text }}</span>
+            {% endfor %}
+        </div>
+        {% if form.role.errors %}<span class="err">{{ form.role.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.password.id_for_label }}">Contraseña {% if form.instance.pk %}<span style="font-weight:500;text-transform:none;color:var(--ink-3)">(vacío = sin cambio)</span>{% endif %}</label>
+            {{ form.password }}
+            {% if form.password.errors %}<span class="err">{{ form.password.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
+            <label>Cuenta activa</label>
+            <div class="chip-pick" data-pick>
+                <label class="{% if form.is_active.value %}on{% endif %}">
+                    <input type="radio" name="is_active" value="True" {% if form.is_active.value %}checked{% endif %}> Activa
+                </label>
+                <label class="{% if not form.is_active.value %}on{% endif %}">
+                    <input type="radio" name="is_active" value="False" {% if not form.is_active.value %}checked{% endif %}> Inactiva
+                </label>
             </div>
-            {% else %}
-            {{ field }}
-            {% endif %}
-            {% if field.errors %}
-            <p class="mt-1 text-sm text-red-400">{{ field.errors.0 }}</p>
-            {% endif %}
         </div>
-        {% endfor %}
-        <div class="flex items-center gap-3 pt-4 border-t border-slate-700">
-            <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">
-                Guardar
-            </button>
-            <a href="{% url 'accounts:user_list' %}" class="text-sm text-slate-400 hover:text-slate-200">Cancelar</a>
-        </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
+
+{% block form_note %}{% if not form.instance.pk %}Comparte la contraseña con el usuario de forma segura{% endif %}{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">{% if form.instance.pk %}Guardar cambios{% else %}Crear cuenta{% endif %}</button>{% endblock %}

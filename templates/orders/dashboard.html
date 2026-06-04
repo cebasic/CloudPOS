@@ -1,198 +1,191 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Dashboard — CocosBarrancos{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Restaurant — Cocos Barrancos{% endblock %}
+{% block page_title %}Restaurant{% endblock %}
 
 {% block content %}
+<div class="view-fade">
+
+{# Saludo #}
+{% now "G" as hour %}
+<div class="page-head">
+    <div>
+        <h1>Buenas <em>{% if hour|add:0 < 12 %}mañanas{% elif hour|add:0 < 19 %}tardes{% else %}noches{% endif %}</em>, {{ user.first_name|default:user.username }}.</h1>
+        <p class="sub">{% now "l j \d\e F" %} · {% if cash_session_open %}Caja abierta · servicio en curso{% else %}Caja cerrada{% endif %}</p>
+    </div>
+</div>
+
+{# Banner caja cerrada #}
 {% if not cash_session_open %}
-<div class="mb-5 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3.5">
-    <svg class="h-5 w-5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+<div style="display:flex;align-items:center;gap:12px;background:#F4DDE1;border:1px solid #E0AFB8;border-radius:var(--r-lg);padding:14px 18px;margin-bottom:22px">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="#7A3947" style="flex:none">
         <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
     </svg>
-    <div class="flex-1">
-        <p class="text-sm font-semibold text-red-400">Caja cerrada — No se pueden crear órdenes</p>
-        <p class="text-xs text-red-500 mt-0.5">Un cajero o administrador debe abrir la caja antes de comenzar.</p>
+    <div style="flex:1">
+        <p style="font-size:13.5px;font-weight:700;color:#7A3947">Caja cerrada — no se pueden crear órdenes</p>
+        <p style="font-size:12px;color:#A14E5E;margin-top:1px">Un cajero o administrador debe abrir la caja antes de comenzar.</p>
     </div>
     {% if user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}
-    <a href="{% url 'cashier:session_open' %}"
-       class="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-colors">
-        Abrir Caja
+    <a href="{% url 'cashier:session_open' %}" class="btn danger sm"
+       hx-get="{% url 'cashier:session_open' %}" hx-target="#modal-root" hx-swap="innerHTML">
+        Abrir caja
     </a>
     {% endif %}
 </div>
 {% endif %}
 
-{# Stats row #}
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-        </div>
-        <div>
-            <p class="text-2xl font-bold text-white">{{ active_orders|length }}</p>
-            <p class="text-xs text-slate-400">Órdenes activas</p>
+{# KPIs #}
+<div class="kpis">
+    <div class="kpi hero">
+        <div class="label"><span class="dotgreen"></span> Órdenes activas</div>
+        <div class="value">{{ active_orders|length }}<span class="unit">en servicio</span></div>
+        <div class="delta">{{ ready_count }} lista{{ ready_count|pluralize }} para servir</div>
+    </div>
+    <div class="kpi">
+        <div class="label">Mesas ocupadas</div>
+        <div class="value"><span class="small">{{ occupied_count }}</span></div>
+        <div class="delta">de {{ tables|length }} mesas</div>
+    </div>
+    <div class="kpi">
+        <div class="label">Mesas libres</div>
+        <div class="value"><span class="small">{{ available_count }}</span></div>
+        <div class="delta">disponibles ahora</div>
+    </div>
+    <div class="kpi">
+        <div class="label">Listos para servir</div>
+        <div class="value"><span class="small">{{ ready_count }}</span></div>
+        <div class="delta {% if ready_count %}down{% endif %}">{% if ready_count %}atender pronto{% else %}al corriente{% endif %}</div>
+    </div>
+</div>
+
+{# Mapa del Restaurant #}
+<div class="card" style="margin-bottom:22px">
+    <div class="card-head">
+        <h2>Mapa del <em>Restaurant</em></h2>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div class="legend">
+                <span><i class="l-a"></i> Libre</span>
+                <span><i class="l-o"></i> Ocupada</span>
+                <span><i class="l-r"></i> Reservada</span>
+            </div>
+            {% if user.role == 'admin' or user.role == 'manager' %}
+            <a href="{% url 'tables:create' %}" class="btn sm"
+               hx-get="{% url 'tables:create' %}" hx-target="#modal-root" hx-swap="innerHTML">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M12 5v14M5 12h14"/></svg>
+                Mesa
+            </a>
+            {% endif %}
         </div>
     </div>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18"/></svg>
-        </div>
-        <div>
-            <p class="text-2xl font-bold text-white">{{ tables|length }}</p>
-            <p class="text-xs text-slate-400">Mesas totales</p>
-        </div>
-    </div>
-    {% with occupied_count=0 %}
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z"/></svg>
-        </div>
-        <div>
-            <p class="text-2xl font-bold text-white">{% for t in tables %}{% if t.status == 'occupied' %}{{ forloop.counter }}{% endif %}{% endfor %}</p>
-            <p class="text-xs text-slate-400">Mesas ocupadas</p>
-        </div>
-    </div>
-    {% endwith %}
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-3">
-        <div class="h-10 w-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-        </div>
-        <div>
-            <p class="text-2xl font-bold text-white">{% for o in active_orders %}{% if o.status == 'ready' %}✓{% endif %}{% endfor %}</p>
-            <p class="text-xs text-slate-400">Listos para servir</p>
+    <div class="card-body">
+        <div class="floor" style="min-height:0">
+            <div class="tables-grid">
+                {% for table in tables %}
+                {% if table.status == 'available' %}
+                    {% if cash_session_open %}
+                    <a class="ftable available" title="Abrir orden para mesa {{ table.number }}"
+                       href="{% url 'orders:create' %}?table={{ table.pk }}"
+                       hx-get="{% url 'orders:create' %}?table={{ table.pk }}" hx-target="#modal-root" hx-swap="innerHTML">
+                        <div class="n">{{ table.number|stringformat:"02d" }}</div>
+                        <div class="cap">{{ table.capacity }} pax · libre</div>
+                    </a>
+                    {% else %}
+                    <div class="ftable" style="opacity:.5;cursor:not-allowed" title="Caja cerrada">
+                        <div class="n">{{ table.number|stringformat:"02d" }}</div>
+                        <div class="cap">{{ table.capacity }} pax</div>
+                    </div>
+                    {% endif %}
+                {% elif table.status == 'occupied' %}
+                <a class="ftable occupied" href="#order-{{ table.pk }}" title="Ver orden de la mesa {{ table.number }}">
+                    <span class="pulse"></span>
+                    <div class="n">{{ table.number|stringformat:"02d" }}</div>
+                    <div class="cap">{{ table.capacity }} pax · ocupada</div>
+                </a>
+                {% else %}
+                <div class="ftable reserved">
+                    <div class="n">{{ table.number|stringformat:"02d" }}</div>
+                    <div class="cap">{{ table.capacity }} pax · reservada</div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <p class="muted">No hay mesas registradas todavía.</p>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
 
-{# Table map #}
-<div class="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-6">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-sm font-semibold text-slate-300">Mapa de Mesas</h2>
-        <div class="flex items-center gap-4 text-xs text-slate-500">
-            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span> Disponible</span>
-            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-red-400"></span> Ocupada</span>
-            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span> Reservada</span>
-        </div>
+{# Órdenes activas #}
+<div class="rail-head">
+    <h2>Órdenes <em>activas</em></h2>
+    <div class="legend">
+        <span><i style="background:var(--marigold)"></i> Pendiente</span>
+        <span><i style="background:var(--ocean)"></i> En cocina</span>
+        <span><i style="background:var(--sage)"></i> Lista</span>
+        <span><i style="background:var(--berry)"></i> Entregada</span>
     </div>
-    <div class="flex flex-wrap gap-3">
-        {% for table in tables %}
-        {% if table.status == 'available' %}
-        {% if cash_session_open %}
-        <a href="{% url 'orders:create' %}?table={{ table.pk }}" title="Abrir orden para mesa {{ table.number }}"
-           class="group relative flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-400 transition-all">
-            <span class="text-lg font-bold text-emerald-400">{{ table.number }}</span>
-            <span class="text-[10px] text-emerald-600">{{ table.capacity }}p</span>
-            <span class="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-slate-800"></span>
-        </a>
-        {% else %}
-        <div title="Caja cerrada — no se pueden crear órdenes"
-             class="relative flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 border-slate-600 bg-slate-700/50 cursor-not-allowed opacity-50">
-            <span class="text-lg font-bold text-slate-500">{{ table.number }}</span>
-            <span class="text-[10px] text-slate-600">{{ table.capacity }}p</span>
-        </div>
-        {% endif %}
-        {% elif table.status == 'occupied' %}
-        <a href="#order-{{ table.pk }}"
-           class="group relative flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 border-red-500/40 bg-red-500/10 hover:bg-red-500/20 hover:border-red-400 transition-all">
-            <span class="text-lg font-bold text-red-400">{{ table.number }}</span>
-            <span class="text-[10px] text-red-600">{{ table.capacity }}p</span>
-            <span class="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-red-400 ring-2 ring-slate-800 animate-pulse"></span>
-        </a>
-        {% else %}
-        <div class="relative flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 border-amber-500/40 bg-amber-500/10">
-            <span class="text-lg font-bold text-amber-400">{{ table.number }}</span>
-            <span class="text-[10px] text-amber-600">{{ table.capacity }}p</span>
-            <span class="absolute -top-1.5 -right-1.5 h-3 w-3 rounded-full bg-amber-400 ring-2 ring-slate-800"></span>
-        </div>
-        {% endif %}
-        {% endfor %}
-    </div>
-</div>
-
-{# Active orders #}
-<div class="flex items-center justify-between mb-4">
-    <h2 class="text-sm font-semibold text-slate-300">Órdenes Activas</h2>
-    {% if cash_session_open %}
-    <a href="{% url 'orders:create' %}" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Nueva Orden
-    </a>
-    {% else %}
-    <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-semibold text-slate-500 cursor-not-allowed" title="Abre la caja primero">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Nueva Orden
-    </span>
-    {% endif %}
 </div>
 
 {% if active_orders %}
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+<div class="rail">
     {% for order in active_orders %}
     <a id="order-{{ order.table.pk }}" href="{% url 'orders:detail' order.pk %}"
-       class="group block bg-slate-800 rounded-xl border border-slate-700 hover:border-brand-500/50 hover:shadow-lg hover:shadow-brand-500/5 transition-all overflow-hidden">
-        <div class="h-1 w-full
-            {% if order.status == 'pending' %}bg-yellow-500
-            {% elif order.status == 'in_progress' %}bg-blue-500
-            {% elif order.status == 'ready' %}bg-emerald-500
-            {% elif order.status == 'delivered' %}bg-purple-500
-            {% else %}bg-slate-600{% endif %}">
+       class="order {% if order.status == 'pending' %}s-pending{% elif order.status == 'in_progress' %}s-progress{% elif order.status == 'ready' %}s-ready{% else %}s-delivered{% endif %}">
+        <span class="bar"></span>
+        <div class="hd">
+            <div>
+                <div class="mesa">Mesa {{ order.table.number }}<span class="oid">#{{ order.pk }}</span></div>
+                <div class="waiter">{{ order.waiter.get_full_name|default:order.waiter.username }} · {{ order.created_at|naturaltime }}</div>
+            </div>
+            {% if order.status == 'pending' %}<span class="chip gold"><i></i> Pendiente</span>
+            {% elif order.status == 'in_progress' %}<span class="chip ocean"><i></i> En cocina</span>
+            {% elif order.status == 'ready' %}<span class="chip sage"><i></i> Lista</span>
+            {% else %}<span class="chip berry"><i></i> Entregada</span>{% endif %}
         </div>
-        <div class="p-4">
-            <div class="flex items-start justify-between mb-3">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-base font-bold text-white">Mesa {{ order.table.number }}</span>
-                        <span class="text-xs font-medium text-slate-500">#{{ order.pk }}</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-0.5">{{ order.waiter.get_full_name|default:order.waiter.username }}</p>
-                </div>
-                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
-                    {% if order.status == 'pending' %}bg-yellow-500/10 text-yellow-400
-                    {% elif order.status == 'in_progress' %}bg-blue-500/10 text-blue-400
-                    {% elif order.status == 'ready' %}bg-emerald-500/10 text-emerald-400
-                    {% elif order.status == 'delivered' %}bg-purple-500/10 text-purple-400
-                    {% else %}bg-slate-700 text-slate-400{% endif %}">
-                    {{ order.get_status_display }}
-                </span>
+        <div class="items">
+            {% for item in order.items.all|slice:":3" %}
+            <div class="it">
+                <span><span class="q">{{ item.quantity }}×</span>{{ item.menu_item.name }}</span>
+                {% if item.status == 'pending' %}<span class="chip gold">Pendiente</span>
+                {% elif item.status == 'preparing' %}<span class="chip ocean">Preparando</span>
+                {% elif item.status == 'ready' %}<span class="chip sage">Listo</span>
+                {% else %}<span class="chip berry">Entregado</span>{% endif %}
             </div>
-            <div class="space-y-1 mb-3">
-                {% for item in order.items.all|slice:":3" %}
-                <div class="flex items-center justify-between text-xs">
-                    <span class="text-slate-400 truncate">{{ item.quantity }}× {{ item.menu_item.name }}</span>
-                    <span class="ml-2 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium
-                        {% if item.status == 'pending' %}bg-yellow-500/10 text-yellow-400
-                        {% elif item.status == 'preparing' %}bg-blue-500/10 text-blue-400
-                        {% elif item.status == 'ready' %}bg-emerald-500/10 text-emerald-400
-                        {% else %}bg-purple-500/10 text-purple-400{% endif %}">
-                        {{ item.get_status_display }}
-                    </span>
-                </div>
-                {% endfor %}
-                {% if order.items.count > 3 %}
-                <p class="text-xs text-slate-600">+{{ order.items.count|add:"-3" }} más...</p>
-                {% endif %}
-            </div>
-            <div class="flex items-center justify-between border-t border-slate-700 pt-3">
-                <span class="text-xs text-slate-500">{{ order.created_at|naturaltime }}</span>
-                <span class="text-sm font-bold text-white">${{ order.total }}</span>
-            </div>
+            {% empty %}
+            <div class="it muted">Capturando items…</div>
+            {% endfor %}
+            {% if order.items.count > 3 %}
+            <div class="it muted">+{{ order.items.count|add:"-3" }} items más…</div>
+            {% endif %}
+        </div>
+        <div class="ft">
+            <span class="t">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                {{ order.created_at|time:"H:i" }}
+            </span>
+            <span class="tot">${{ order.total }}</span>
         </div>
     </a>
     {% endfor %}
 </div>
 {% else %}
-<div class="flex flex-col items-center justify-center bg-slate-800 rounded-xl border border-slate-700 py-16">
-    <div class="h-16 w-16 rounded-2xl bg-slate-700 flex items-center justify-center mb-4">
-        <svg class="h-8 w-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z"/>
+<div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 20px;text-align:center">
+    <div style="width:56px;height:56px;border-radius:16px;background:var(--paper-2);border:1px solid var(--hairline);display:grid;place-items:center;margin-bottom:14px">
+        <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="var(--ink-3)">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/>
         </svg>
     </div>
-    <h3 class="text-sm font-semibold text-slate-300">Sin órdenes activas</h3>
-    <p class="mt-1 text-sm text-slate-500">Crea una nueva orden para comenzar.</p>
-    <a href="{% url 'orders:create' %}" class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Nueva Orden
+    <h3 style="font-weight:700;font-size:16px">Sin órdenes activas</h3>
+    <p class="muted" style="margin-top:4px;font-size:13px">Crea una nueva orden para comenzar el servicio.</p>
+    {% if cash_session_open %}
+    <a href="{% url 'orders:create' %}" class="btn primary" style="margin-top:16px"
+       hx-get="{% url 'orders:create' %}" hx-target="#modal-root" hx-swap="innerHTML">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+        Nueva orden
     </a>
+    {% endif %}
 </div>
 {% endif %}
+
+</div>
 {% endblock %}

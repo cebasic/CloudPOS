@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{# Fallback de página completa para los formularios que normalmente se abren como modal #}
+{% block title %}Cocos Barrancos{% endblock %}
+{% block page_title %}Formulario{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:center;padding:12px 0">
+    <div class="modal view-fade" style="position:static;animation:none;width:min({% block page_form_width %}560px{% endblock %},100%)">
+        <div class="modal-head">
+            <div>
+                <h3>{% block form_title %}{% endblock %}</h3>
+                <div class="ms">{% block form_subtitle %}{% endblock %}</div>
+            </div>
+        </div>
+        <form method="post" action="{{ request.get_full_path }}" {% block form_attrs %}{% endblock %}>
+            {% csrf_token %}
+            <div class="modal-body">
+                {% block form_body %}{% endblock %}
+            </div>
+            <div class="modal-foot">
+                <span class="left">{% block form_note %}{% endblock %}</span>
+                <div class="acts">
+                    <a href="javascript:history.back()" class="btn">Cancelar</a>
+                    {% block form_actions %}<button type="submit" class="btn primary">Guardar</button>{% endblock %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

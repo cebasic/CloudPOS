@@ -91,9 +91,9 @@ def item_toggle_available(request, pk):
     item.save(update_fields=["available"])
     if request.htmx:
         if item.available:
-            badge = '<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400">Disponible</span>'
+            badge = '<span class="chip sage"><i></i> Disponible</span>'
         else:
-            badge = '<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-red-500/10 text-red-400">No disponible</span>'
+            badge = '<span class="chip berry"><i></i> 86</span>'
         return HttpResponse(badge)
     return redirect("menu:category_list")
 
@@ -109,8 +109,8 @@ def quick_86(request):
             item.available = not item.available
             item.save(update_fields=["available"])
         if item.available:
-            badge = '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">Disponible</span>'
+            badge = f'<span id="badge-{item.pk}" class="chip sage"><i></i> Disponible</span>'
         else:
-            badge = '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold bg-red-500/10 text-red-400 ring-1 ring-red-500/20">86\'d</span>'
+            badge = f'<span id="badge-{item.pk}" class="chip berry"><i></i> 86\'d</span>'
         return HttpResponse(badge)
     return render(request, "menu/quick_86.html", {"categories": categories})

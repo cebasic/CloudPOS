@@ -3,7 +3,7 @@ from .models import Order, OrderItem, Payment
 from apps.tables.models import Table
 from apps.menu.models import MenuItem
 
-INPUT_CLASS = "block w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+INPUT_CLASS = "input"
 
 
 class OrderForm(forms.ModelForm):
