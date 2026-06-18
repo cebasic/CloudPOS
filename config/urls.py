@@ -16,6 +16,7 @@ urlpatterns = [
     path("caja/", include("apps.cashier.urls")),
     path("reservaciones/", include("apps.reservations.urls")),
     path("ticket/", include("apps.tickets.urls")),
+    path("negocio/", include("apps.business.urls")),
     path("", lambda request: redirect("orders:dashboard")),
 ]
 

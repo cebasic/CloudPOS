@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Configuración Negocio — {{ business.name }}{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Configuración Negocio{% endblock %}
+
+{% block content %}
+<style>
+.bz-layout{display:grid; grid-template-columns: 1fr 340px; gap:24px; align-items:start}
+@media (max-width:1023px){ .bz-layout{grid-template-columns:1fr} }
+
+.logo-drop{
+  display:flex;align-items:center;gap:14px;
+  border:1px dashed var(--hairline-2);border-radius:12px;padding:14px;
+  background:var(--paper);cursor:pointer;transition:border-color .15s,background .15s;
+}
+.logo-drop:hover{border-color:var(--terracotta);background:#fff}
+.logo-drop .thumb{
+  width:62px;height:62px;border-radius:12px;flex:none;overflow:hidden;
+  background:#fff;border:1px solid var(--hairline);display:grid;place-items:center;color:var(--ink-3);
+}
+.logo-drop .thumb img{width:100%;height:100%;object-fit:cover}
+.logo-drop .txt b{display:block;font-size:13px;font-weight:700;color:var(--ink)}
+.logo-drop .txt span{font-size:11.5px;color:var(--ink-3)}
+
+/* Preview de la marca tal cual la barra lateral */
+.bz-stage{position:sticky;top:92px;display:flex;flex-direction:column;gap:14px}
+.bz-stage .stage-label{font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;display:flex;align-items:center;gap:8px}
+.bz-stage .stage-label i{width:7px;height:7px;border-radius:50%;background:var(--sage);box-shadow:0 0 0 3px rgba(107,142,90,.2);display:inline-block}
+.bz-preview{background:var(--espresso);border:1px solid var(--espresso-line);border-radius:14px;padding:18px 16px;box-shadow:var(--shadow-lg)}
+.bz-brand{display:flex;align-items:center;gap:10px}
+.bz-mark{
+  width:40px;height:40px;border-radius:11px;flex:none;overflow:hidden;
+  background:linear-gradient(160deg,#E58A6E 0%,#C8553D 60%,#8E3320 100%);
+  display:grid;place-items:center;color:#FAF6EE;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 14px -6px rgba(200,85,61,.65);
+  font-weight:800;font-size:19px;line-height:1;letter-spacing:-0.02em;
+}
+.bz-mark img{width:100%;height:100%;object-fit:cover}
+.bz-wm{font-weight:700;font-size:20px;letter-spacing:-0.02em;color:#FAF6EE;line-height:1.1}
+.bz-wm small{display:block;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--espresso-ink-3);margin-top:5px;font-weight:500}
+.bz-wm .bz-branch{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:0;text-transform:none;color:var(--espresso-ink-2);margin-top:6px;font-weight:600}
+.bz-wm .bz-branch::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--terracotta);flex:none}
+.bz-preview .hintbar{margin-top:14px;font-size:11px;color:var(--espresso-ink-3);border-top:1px solid var(--espresso-line);padding-top:10px;text-align:center}
+</style>
+
+<form method="post" id="bzForm" enctype="multipart/form-data" class="view-fade">
+    {% csrf_token %}
+    <div class="bz-layout">
+
+        {# ---------- Edición ---------- #}
+        <div class="card">
+            <div class="card-head"><h2>Identidad del <em>negocio</em></h2></div>
+            <div class="card-body">
+
+                <div class="fg" style="margin-bottom:18px">
+                    <label>Logo del restaurant</label>
+                    <label class="logo-drop" for="{{ form.logo.id_for_label }}">
+                        <span class="thumb" id="bzDropThumb">
+                            {% if business.logo %}<img src="{{ business.logo.url }}" alt="logo">
+                            {% else %}<svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16l5-5 4 4 3-3 6 6M3 5h18v14H3z"/></svg>{% endif %}
+                        </span>
+                        <span class="txt">
+                            <b>Subir logo</b>
+                            <span>PNG, JPG o SVG · se muestra en el avatar superior izquierdo</span>
+                        </span>
+                    </label>
+                    <div style="display:none">{{ form.logo }}</div>
+                    {% if form.logo.errors %}<span class="err">{{ form.logo.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="fg" style="margin-bottom:16px">
+                    <label for="{{ form.name.id_for_label }}">Nombre del restaurant</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="err">{{ form.name.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div class="fg" style="margin-bottom:16px">
+                    <label for="{{ form.tagline.id_for_label }}">Lema</label>
+                    {{ form.tagline }}
+                    <span class="hint">Aparece bajo el nombre en la barra lateral</span>
+                </div>
+
+                <div class="fg">
+                    <label for="{{ form.branch.id_for_label }}">Sucursal</label>
+                    <div class="prefix-input">
+                        <span class="pfx" style="font-family:var(--sans)">Sucursal</span>
+                        <input type="text" name="branch" id="{{ form.branch.id_for_label }}" maxlength="80" value="{{ form.branch.value|default:'' }}" placeholder="ej. Centro">
+                    </div>
+                    <span class="hint">"Sucursal" ya viene incluido · solo escribe el nombre. Aparece debajo del lema</span>
+                    {% if form.branch.errors %}<span class="err">{{ form.branch.errors.0 }}</span>{% endif %}
+                </div>
+
+            </div>
+            <div class="modal-foot" style="border-radius:0 0 var(--r-lg) var(--r-lg)">
+                <span class="left">
+                    {% if business.updated_at %}Última edición {{ business.updated_at|date:"d M Y · H:i" }}{% else %}Sin guardar aún{% endif %}
+                </span>
+                <div class="acts">
+                    <a href="{% url 'orders:dashboard' %}" class="btn">Cancelar</a>
+                    <button type="submit" class="btn primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+
+        {# ---------- Preview ---------- #}
+        <div class="bz-stage">
+            <div class="stage-label"><i></i> Vista previa en vivo</div>
+            <div class="bz-preview">
+                <div class="bz-brand">
+                    <div class="bz-mark" id="bzMark">
+                        {% if business.logo %}<img id="bzMarkImg" src="{{ business.logo.url }}" alt="logo">
+                        {% else %}<span id="bzMarkLetter">{{ business.name|default:"C"|slice:":1"|upper }}</span>{% endif %}
+                    </div>
+                    <div class="bz-wm"><span id="bzName">{{ business.name|default:"Cocos Barrancos" }}</span><small id="bzTagline"{% if not business.tagline %} style="display:none"{% endif %}>{{ business.tagline }}</small><small class="bz-branch" id="bzBranch"{% if not business.branch %} style="display:none"{% endif %}>Sucursal {{ business.branch }}</small></div>
+                </div>
+                <div class="hintbar">Así se verá en la parte superior izquierda</div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script>
+(function(){
+    var form = document.getElementById('bzForm');
+    if (!form) return;
+    var logoInput = document.getElementById('{{ form.logo.id_for_label }}');
+    var hasLogo = {% if business.logo %}true{% else %}false{% endif %};
+
+    function $(id){ return document.getElementById(id); }
+    function val(id){ var el = $(id); return el ? el.value.trim() : ''; }
+
+    function sync(){
+        var name = val('{{ form.name.id_for_label }}') || 'Cocos Barrancos';
+        $('bzName').textContent = name;
+
+        var tag = val('{{ form.tagline.id_for_label }}');
+        var tagEl = $('bzTagline');
+        tagEl.textContent = tag;
+        tagEl.style.display = tag ? '' : 'none';
+
+        var br = val('{{ form.branch.id_for_label }}');
+        var brEl = $('bzBranch');
+        brEl.textContent = br ? 'Sucursal ' + br : '';
+        brEl.style.display = br ? '' : 'none';
+
+        // Avatar: logo si existe, si no la inicial del nombre
+        var mark = $('bzMark');
+        if (!hasLogo){
+            mark.innerHTML = '<span id="bzMarkLetter">' + name.charAt(0).toUpperCase() + '</span>';
+        }
+    }
+
+    form.addEventListener('input', sync);
+
+    if (logoInput){
+        logoInput.addEventListener('change', function(){
+            if (logoInput.files && logoInput.files[0]){
+                var url = URL.createObjectURL(logoInput.files[0]);
+                hasLogo = true;
+                $('bzMark').innerHTML = '<img id="bzMarkImg" alt="logo" src="' + url + '">';
+                var t = $('bzDropThumb');
+                if (t){ t.innerHTML = ''; var im = document.createElement('img'); im.src = url; t.appendChild(im); }
+            }
+            sync();
+        });
+    }
+
+    sync();
+})();
+</script>
+{% endblock %}
