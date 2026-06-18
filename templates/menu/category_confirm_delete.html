@@ -1,5 +1,5 @@
 {% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
-{% block title %}Eliminar categoría — Cocos Barrancos{% endblock %}
+{% block title %}Eliminar categoría — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Eliminar categoría{% endblock %}
 {% block crumb_section %}Gestión{% endblock %}
 

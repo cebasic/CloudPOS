@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load l10n %}
-{% block title %}Cobrar orden #{{ order.pk }} — Cocos Barrancos{% endblock %}
+{% block title %}Cobrar orden #{{ order.pk }} — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Cobrar · Mesa {{ order.table.number }}{% endblock %}
 
 {% block content %}

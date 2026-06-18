@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {# Fallback de página completa para los formularios que normalmente se abren como modal #}
-{% block title %}Cocos Barrancos{% endblock %}
+{% block title %}{{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Formulario{% endblock %}
 
 {% block content %}

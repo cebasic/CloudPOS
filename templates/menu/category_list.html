@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Menú — Cocos Barrancos{% endblock %}
+{% block title %}Menú — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block crumb_section %}Gestión{% endblock %}
 {% block page_title %}Menú{% endblock %}
 

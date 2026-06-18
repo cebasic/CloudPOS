@@ -1,5 +1,5 @@
 {% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
-{% block title %}{{ title }} — Cocos Barrancos{% endblock %}
+{% block title %}{{ title }} — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 {% block page_form_width %}720px{% endblock %}
 
