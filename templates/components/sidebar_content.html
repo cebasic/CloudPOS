@@ -68,6 +68,12 @@
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="5.5"/><path d="M12 13.5V21M8 21h8"/></svg>
         <span>Mesas</span>
     </a>
+
+    <a href="{% url 'tickets:editor' %}"
+       class="{% if request.resolver_match.app_name == 'tickets' %}active{% endif %}">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14l-2.5-1.5L15 19l-2.5-1.5L10 19l-2.5-1.5L5 19a1 1 0 0 1-1-1V5z"/><path d="M8 8.5h8M8 12h8"/></svg>
+        <span>Ticket</span>
+    </a>
     {% endif %}
 
     {% if user.role == 'admin' %}

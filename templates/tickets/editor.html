@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% block title %}Ticket — {{ ticket.business_name }}{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Editor de Ticket{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
+{% endblock %}
+
+{% block content %}
+<style>
+/* ---- Editor del ticket ---- */
+.tk-layout{display:grid; grid-template-columns: 1fr 360px; gap:24px; align-items:start}
+@media (max-width:1023px){ .tk-layout{grid-template-columns:1fr} }
+
+.tk-section{margin-bottom:18px}
+.tk-section .sh{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin:0 0 12px}
+.tk-section .sh .ln{flex:1;height:1px;background:var(--hairline)}
+
+.color-input{width:46px;height:38px;border:1px solid var(--hairline);border-radius:10px;background:#fff;padding:3px;cursor:pointer}
+.color-row{display:flex;align-items:center;gap:10px}
+.color-row .cv{font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+
+/* dropzone logo */
+.logo-drop{
+  display:flex;align-items:center;gap:14px;
+  border:1px dashed var(--hairline-2);border-radius:12px;padding:14px;
+  background:var(--paper);cursor:pointer;transition:border-color .15s,background .15s;
+}
+.logo-drop:hover{border-color:var(--terracotta);background:#fff}
+.logo-drop .thumb{
+  width:62px;height:62px;border-radius:12px;flex:none;overflow:hidden;
+  background:#fff;border:1px solid var(--hairline);display:grid;place-items:center;
+  color:var(--ink-3);
+}
+.logo-drop .thumb img{width:100%;height:100%;object-fit:contain}
+.logo-drop .txt b{display:block;font-size:13px;font-weight:700;color:var(--ink)}
+.logo-drop .txt span{font-size:11.5px;color:var(--ink-3)}
+
+/* toggles */
+.tg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:560px){ .tg-grid{grid-template-columns:1fr} }
+.tg{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--hairline);border-radius:10px;background:#fff;cursor:pointer}
+.tg .tg-l{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.tg input{appearance:none;-webkit-appearance:none;width:38px;height:22px;border-radius:999px;background:var(--hairline-2);position:relative;cursor:pointer;transition:background .15s;flex:none;margin:0}
+.tg input:checked{background:var(--sage)}
+.tg input::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(27,24,21,.25)}
+.tg input:checked::after{left:18px}
+
+/* ---- Preview (mockup ticket térmico) ---- */
+.tk-stage{position:sticky;top:92px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.tk-stage .stage-label{font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;display:flex;align-items:center;gap:8px}
+.tk-stage .stage-label i{width:7px;height:7px;border-radius:50%;background:var(--sage);box-shadow:0 0 0 3px rgba(107,142,90,.2);display:inline-block}
+.tk-scroll{width:100%;display:flex;justify-content:center;padding:10px;background:
+  radial-gradient(80% 60% at 50% 0%, #EFE6D3 0%, transparent 70%);border-radius:16px}
+
+.tk-paper{
+  --tk-accent:#C8553D;
+  position:relative;width:300px;background:#fff;color:#1c1a17;
+  padding:22px 20px 30px;font-family:var(--mono);font-size:12px;line-height:1.55;
+  box-shadow:0 24px 48px -22px rgba(27,24,21,.45);
+  transition:width .2s ease;
+}
+.tk-paper.w58{width:236px;font-size:11px}
+/* borde superior e inferior dentado (papel térmico) */
+.tk-paper::before,.tk-paper::after{
+  content:"";position:absolute;left:0;right:0;height:7px;
+  background:linear-gradient(45deg,#fff 33.3%,transparent 33.3%) 0 0/8px 12px repeat-x,
+             linear-gradient(-45deg,#fff 33.3%,transparent 33.3%) 0 0/8px 12px repeat-x;
+}
+.tk-paper::before{top:-6px;transform:rotate(180deg)}
+.tk-paper::after{bottom:-6px}
+
+.tk-paper .tk-head{text-align:center}
+.tk-logo{width:58px;height:58px;margin:0 auto 8px;border-radius:8px;overflow:hidden;display:grid;place-items:center}
+.tk-logo img{width:100%;height:100%;object-fit:contain}
+.tk-name{font-family:var(--sans);font-weight:800;font-size:17px;letter-spacing:-0.02em;line-height:1.1;color:#1c1a17}
+.tk-tagline{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#8a8278;margin-top:3px}
+.tk-note{font-size:10.5px;color:#5a554e;margin-top:6px}
+.tk-meta{font-size:10.5px;color:#5a554e;margin-top:4px}
+
+.tk-rule{border:0;border-top:1px dashed #c9c1b3;margin:12px 0}
+.tk-sub{display:flex;justify-content:space-between;color:#5a554e;font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em}
+.tk-li{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.tk-li .q{color:#8a8278}
+.tk-li .nm{flex:1;padding-left:6px}
+.tk-row{display:flex;justify-content:space-between;padding:2px 0;color:#3a352f}
+.tk-row.tot{align-items:baseline;margin-top:6px;padding-top:8px;border-top:1px solid #1c1a17}
+.tk-row.tot .l{font-family:var(--sans);font-weight:800;text-transform:uppercase;letter-spacing:0.06em;font-size:11px}
+.tk-row.tot .v{font-family:var(--sans);font-weight:800;font-size:22px;color:var(--tk-accent)}
+.tk-change{display:flex;justify-content:space-between;background:#f4f0e7;border-radius:8px;padding:6px 8px;margin-top:6px;font-weight:700}
+.tk-foot{text-align:center;font-size:11px;color:#3a352f;margin-top:4px}
+.tk-qr{text-align:center;margin-top:12px}
+.tk-qr img{width:104px;height:104px;margin:0 auto;display:block;image-rendering:pixelated}
+.tk-qr .cap{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#8a8278;margin-top:5px}
+.tk-stamp{text-align:center;font-size:9px;color:#b6ae9f;letter-spacing:0.18em;text-transform:uppercase;margin-top:10px}
+.is-hidden{display:none !important}
+
+.tk-actions{display:flex;gap:10px;width:100%;max-width:320px}
+</style>
+
+<form method="post" id="ticketForm" enctype="multipart/form-data" class="view-fade">
+    {% csrf_token %}
+    <div class="tk-layout">
+
+        {# ----------------- Columna de edición ----------------- #}
+        <div class="card">
+            <div class="card-head">
+                <h2>Editar <em>Ticket</em></h2>
+            </div>
+            <div class="card-body">
+
+                {# Identidad #}
+                <div class="tk-section">
+                    <div class="sh">Identidad <span class="ln"></span></div>
+
+                    <div class="fg" style="margin-bottom:14px">
+                        <label>Logo del negocio</label>
+                        <label class="logo-drop" for="{{ form.logo.id_for_label }}">
+                            <span class="thumb" id="pvDropThumb">
+                                {% if ticket.logo %}<img src="{{ ticket.logo.url }}" alt="logo">
+                                {% else %}<svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16l5-5 4 4 3-3 6 6M3 5h18v14H3z"/></svg>{% endif %}
+                            </span>
+                            <span class="txt">
+                                <b>Subir logo</b>
+                                <span>PNG, JPG o SVG · se centra en el ticket</span>
+                            </span>
+                        </label>
+                        <div style="display:none">{{ form.logo }}</div>
+                        {% if form.logo.errors %}<span class="err">{{ form.logo.errors.0 }}</span>{% endif %}
+                    </div>
+
+                    <div class="form-grid cols-2">
+                        <div class="fg">
+                            <label for="{{ form.business_name.id_for_label }}">Nombre</label>
+                            {{ form.business_name }}
+                            {% if form.business_name.errors %}<span class="err">{{ form.business_name.errors.0 }}</span>{% endif %}
+                        </div>
+                        <div class="fg">
+                            <label for="{{ form.tagline.id_for_label }}">Lema</label>
+                            {{ form.tagline }}
+                        </div>
+                    </div>
+                    <div class="fg" style="margin-top:14px">
+                        <label for="{{ form.header_note.id_for_label }}">Nota de encabezado</label>
+                        {{ form.header_note }}
+                        <span class="hint">Opcional · ej. "Sucursal Centro"</span>
+                    </div>
+                </div>
+
+                {# Contacto / fiscal #}
+                <div class="tk-section">
+                    <div class="sh">Contacto y fiscal <span class="ln"></span></div>
+                    <div class="fg" style="margin-bottom:14px">
+                        <label for="{{ form.address.id_for_label }}">Dirección</label>
+                        {{ form.address }}
+                    </div>
+                    <div class="form-grid cols-2">
+                        <div class="fg">
+                            <label for="{{ form.phone.id_for_label }}">Teléfono</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="fg">
+                            <label for="{{ form.tax_id.id_for_label }}">RFC</label>
+                            {{ form.tax_id }}
+                        </div>
+                    </div>
+                    <div class="fg" style="margin-top:14px">
+                        <label for="{{ form.billing_url.id_for_label }}">URL de facturación</label>
+                        {{ form.billing_url }}
+                        <span class="hint">Se muestra como código QR en el ticket para que el cliente facture</span>
+                        {% if form.billing_url.errors %}<span class="err">{{ form.billing_url.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+
+                {# Mensajes #}
+                <div class="tk-section">
+                    <div class="sh">Mensajes <span class="ln"></span></div>
+                    <div class="fg">
+                        <label for="{{ form.footer_message.id_for_label }}">Mensaje de pie</label>
+                        {{ form.footer_message }}
+                        <span class="hint">Aparece al final del ticket</span>
+                    </div>
+                </div>
+
+                {# Apariencia #}
+                <div class="tk-section">
+                    <div class="sh">Apariencia <span class="ln"></span></div>
+                    <div class="form-grid cols-2">
+                        <div class="fg">
+                            <label for="{{ form.accent_color.id_for_label }}">Color de acento</label>
+                            <div class="color-row">
+                                {{ form.accent_color }}
+                                <span class="cv" id="pvColorVal">{{ ticket.accent_color }}</span>
+                            </div>
+                        </div>
+                        <div class="fg">
+                            <label for="{{ form.paper_width.id_for_label }}">Ancho de papel</label>
+                            {{ form.paper_width }}
+                        </div>
+                    </div>
+                </div>
+
+                {# Secciones visibles #}
+                <div class="tk-section" style="margin-bottom:0">
+                    <div class="sh">Secciones visibles <span class="ln"></span></div>
+                    <div class="tg-grid">
+                        <label class="tg">{{ form.show_logo }}<span class="tg-l">Logo</span></label>
+                        <label class="tg">{{ form.show_address }}<span class="tg-l">Dirección</span></label>
+                        <label class="tg">{{ form.show_phone }}<span class="tg-l">Teléfono</span></label>
+                        <label class="tg">{{ form.show_tax_id }}<span class="tg-l">RFC</span></label>
+                        <label class="tg">{{ form.show_qr }}<span class="tg-l">QR facturación</span></label>
+                        <label class="tg">{{ form.show_table }}<span class="tg-l">Mesa</span></label>
+                        <label class="tg">{{ form.show_cashier }}<span class="tg-l">Cajero</span></label>
+                        <label class="tg">{{ form.show_datetime }}<span class="tg-l">Fecha / hora</span></label>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-foot" style="border-radius:0 0 var(--r-lg) var(--r-lg)">
+                <span class="left">
+                    {% if ticket.updated_at %}Última edición {{ ticket.updated_at|date:"d M Y · H:i" }}{% else %}Sin guardar aún{% endif %}
+                </span>
+                <div class="acts">
+                    <a href="{% url 'orders:dashboard' %}" class="btn">Cancelar</a>
+                    <button type="submit" class="btn primary">Guardar ticket</button>
+                </div>
+            </div>
+        </div>
+
+        {# ----------------- Preview en vivo ----------------- #}
+        <div class="tk-stage">
+            <div class="stage-label"><i></i> Vista previa en vivo</div>
+            <div class="tk-scroll">
+                <div class="tk-paper{% if ticket.paper_width == '58' %} w58{% endif %}" id="tkPaper" style="--tk-accent:{{ ticket.accent_color }}">
+                    <div class="tk-head">
+                        <div class="tk-logo{% if not ticket.logo or not ticket.show_logo %} is-hidden{% endif %}" id="pvLogo">
+                            <img id="pvLogoImg" src="{% if ticket.logo %}{{ ticket.logo.url }}{% endif %}" alt="logo">
+                        </div>
+                        <div class="tk-name" id="pvName">{{ ticket.business_name|default:"Nombre del negocio" }}</div>
+                        <div class="tk-tagline{% if not ticket.tagline %} is-hidden{% endif %}" id="pvTagline">{{ ticket.tagline }}</div>
+                        <div class="tk-note{% if not ticket.header_note %} is-hidden{% endif %}" id="pvNote">{{ ticket.header_note }}</div>
+                        <div class="tk-meta{% if not ticket.address or not ticket.show_address %} is-hidden{% endif %}" id="pvAddress">{{ ticket.address }}</div>
+                        <div class="tk-meta{% if not ticket.phone or not ticket.show_phone %} is-hidden{% endif %}" id="pvPhone">Tel. {{ ticket.phone }}</div>
+                        <div class="tk-meta{% if not ticket.tax_id or not ticket.show_tax_id %} is-hidden{% endif %}" id="pvTaxId">RFC: {{ ticket.tax_id }}</div>
+                    </div>
+
+                    <hr class="tk-rule">
+                    <div class="tk-sub"><span>Recibo #1024</span><span id="pvMesa"{% if not ticket.show_table %} class="is-hidden"{% endif %}>Mesa 7</span></div>
+                    <div class="tk-meta" id="pvDate"{% if not ticket.show_datetime %} class="is-hidden"{% endif %} style="text-align:left">18 Jun 2026 · 14:32</div>
+
+                    <hr class="tk-rule">
+                    <div class="tk-li"><span><span class="q">2×</span><span class="nm">Tacos de pescado</span></span><span>$180.00</span></div>
+                    <div class="tk-li"><span><span class="q">1×</span><span class="nm">Aguachile verde</span></span><span>$145.00</span></div>
+                    <div class="tk-li"><span><span class="q">2×</span><span class="nm">Limonada de coco</span></span><span>$90.00</span></div>
+
+                    <hr class="tk-rule">
+                    <div class="tk-row"><span>Subtotal</span><span>$415.00</span></div>
+                    <div class="tk-row" style="color:#547548"><span>Descuento</span><span>−$40.00</span></div>
+                    <div class="tk-row"><span>Propina</span><span>$56.00</span></div>
+                    <div class="tk-row tot"><span class="l">Total</span><span class="v" id="pvTotal">$431.00</span></div>
+
+                    <div class="tk-row" style="margin-top:8px"><span>Método</span><span>Efectivo</span></div>
+                    <div class="tk-row"><span>Recibido</span><span>$500.00</span></div>
+                    <div class="tk-change"><span>Cambio</span><span>$69.00</span></div>
+
+                    <div class="tk-meta" id="pvCashier"{% if not ticket.show_cashier %} class="is-hidden"{% endif %} style="margin-top:8px">Atendió: Ana G.</div>
+
+                    <div class="tk-qr{% if not ticket.billing_url or not ticket.show_qr %} is-hidden{% endif %}" id="pvQr">
+                        <img id="pvQrImg" alt="QR facturación">
+                        <div class="cap">Factura tu consumo</div>
+                    </div>
+
+                    <hr class="tk-rule">
+                    <div class="tk-foot{% if not ticket.footer_message %} is-hidden{% endif %}" id="pvFooter">{{ ticket.footer_message }}</div>
+                    <div class="tk-stamp">· · ·</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script>
+(function(){
+    var form  = document.getElementById('ticketForm');
+    var paper = document.getElementById('tkPaper');
+    if (!form || !paper) return;
+
+    var logoInput = document.getElementById('{{ form.logo.id_for_label }}');
+    var hasLogo   = {% if ticket.logo %}true{% else %}false{% endif %};
+
+    function $(id){ return document.getElementById(id); }
+    function val(id){ var el = $(id); return el ? el.value.trim() : ''; }
+    function checked(id){ var el = $(id); return el ? el.checked : true; }
+    function show(el, on){ if (el) el.classList.toggle('is-hidden', !on); }
+
+    // Genera un data-URL de QR a partir de un texto (librería qrcode-generator)
+    function makeQR(text){
+        if (!window.qrcode || !text) return '';
+        try {
+            var qr = qrcode(0, 'M');
+            qr.addData(text);
+            qr.make();
+            return qr.createDataURL(4, 0);
+        } catch (e) { return ''; }
+    }
+
+    // Texto + ocultar línea cuando está vacía o su sección está apagada
+    function line(elId, text, on){
+        var el = $(elId); if (!el) return;
+        if (text) el.textContent = text;
+        show(el, !!text && on !== false);
+    }
+
+    function sync(){
+        // Encabezado
+        var name = val('{{ form.business_name.id_for_label }}');
+        $('pvName').textContent = name || 'Nombre del negocio';
+        line('pvTagline', val('{{ form.tagline.id_for_label }}'));
+        line('pvNote',    val('{{ form.header_note.id_for_label }}'));
+
+        line('pvAddress', val('{{ form.address.id_for_label }}'), checked('{{ form.show_address.id_for_label }}'));
+        var phone = val('{{ form.phone.id_for_label }}');
+        line('pvPhone', phone ? 'Tel. ' + phone : '', checked('{{ form.show_phone.id_for_label }}'));
+        var rfc = val('{{ form.tax_id.id_for_label }}');
+        line('pvTaxId', rfc ? 'RFC: ' + rfc : '', checked('{{ form.show_tax_id.id_for_label }}'));
+
+        // Logo
+        show($('pvLogo'), hasLogo && checked('{{ form.show_logo.id_for_label }}'));
+
+        // Secciones de cuerpo
+        show($('pvMesa'),    checked('{{ form.show_table.id_for_label }}'));
+        show($('pvDate'),    checked('{{ form.show_datetime.id_for_label }}'));
+        show($('pvCashier'), checked('{{ form.show_cashier.id_for_label }}'));
+
+        // QR de facturación
+        var burl = val('{{ form.billing_url.id_for_label }}');
+        var showQr = checked('{{ form.show_qr.id_for_label }}') && !!burl;
+        if (showQr){
+            var data = makeQR(burl);
+            if (data) $('pvQrImg').src = data;
+            show($('pvQr'), !!data);
+        } else {
+            show($('pvQr'), false);
+        }
+
+        // Pie
+        line('pvFooter', val('{{ form.footer_message.id_for_label }}'));
+
+        // Apariencia
+        var color = val('{{ form.accent_color.id_for_label }}') || '#C8553D';
+        paper.style.setProperty('--tk-accent', color);
+        var cv = $('pvColorVal'); if (cv) cv.textContent = color.toUpperCase();
+        paper.classList.toggle('w58', val('{{ form.paper_width.id_for_label }}') === '58');
+    }
+
+    form.addEventListener('input', sync);
+    form.addEventListener('change', sync);
+
+    if (logoInput){
+        logoInput.addEventListener('change', function(){
+            if (logoInput.files && logoInput.files[0]){
+                var url = URL.createObjectURL(logoInput.files[0]);
+                $('pvLogoImg').src = url;
+                var t = $('pvDropThumb');
+                if (t){ t.innerHTML = ''; var im = document.createElement('img'); im.src = url; t.appendChild(im); }
+                hasLogo = true;
+            }
+            sync();
+        });
+    }
+
+    sync();
+})();
+</script>
+{% endblock %}

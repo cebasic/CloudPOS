@@ -1,19 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Recibo #{{ order.pk }} — Cocos Barrancos{% endblock %}
+{% block title %}Recibo #{{ order.pk }} — {{ ticket.business_name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Recibo · Orden #{{ order.pk }}{% endblock %}
+
+{% block extra_head %}
+{% if ticket.show_qr and ticket.billing_url %}<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="view-fade" style="max-width:400px;margin:0 auto">
     <div class="card" style="box-shadow:var(--shadow-lg)">
-        {# Encabezado #}
-        <div style="padding:26px 24px;text-align:center;border-bottom:1px solid var(--hairline);background:linear-gradient(180deg,#EEF4E3,transparent)">
+        {# Encabezado · identidad del negocio (configurable en Ticket) #}
+        <div style="padding:26px 24px 20px;text-align:center;border-bottom:1px solid var(--hairline);background:linear-gradient(180deg,#EEF4E3,transparent)">
+            {% if ticket.show_logo and ticket.logo %}
+            <div style="width:64px;height:64px;margin:0 auto 10px;border-radius:14px;overflow:hidden;background:#fff;border:1px solid var(--hairline);display:grid;place-items:center">
+                <img src="{{ ticket.logo.url }}" alt="logo" style="width:100%;height:100%;object-fit:contain">
+            </div>
+            {% else %}
             <div style="display:inline-grid;place-items:center;width:54px;height:54px;border-radius:50%;background:#DDE6CF;margin-bottom:12px">
                 <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--sage-2)">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5 9-11"/>
                 </svg>
             </div>
-            <h2 style="font-weight:800;font-size:22px;letter-spacing:-0.03em">¡Cobrado!</h2>
-            <p class="muted" style="font-size:13px;margin-top:4px">Mesa {{ order.table.number }} · {{ order.created_at|date:"d M Y" }}</p>
+            {% endif %}
+            <h2 style="font-weight:800;font-size:22px;letter-spacing:-0.03em">{{ ticket.business_name|default:"Cocos Barrancos" }}</h2>
+            {% if ticket.tagline %}<p style="font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3);margin-top:3px">{{ ticket.tagline }}</p>{% endif %}
+            {% if ticket.header_note %}<p class="muted" style="font-size:12px;margin-top:4px">{{ ticket.header_note }}</p>{% endif %}
+            {% if ticket.show_address and ticket.address %}<p class="muted" style="font-size:11.5px;margin-top:6px">{{ ticket.address }}</p>{% endif %}
+            {% if ticket.show_phone and ticket.phone %}<p class="muted" style="font-size:11.5px">Tel. {{ ticket.phone }}</p>{% endif %}
+            {% if ticket.show_tax_id and ticket.tax_id %}<p class="muted mono" style="font-size:11px">RFC: {{ ticket.tax_id }}</p>{% endif %}
+            <div style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:4px 11px;border-radius:999px;background:#EEF4E3;border:1px solid #CFE0B7;color:var(--sage-2);font-size:11.5px;font-weight:700">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5 9-11"/></svg>
+                Cobrado
+            </div>
+            <p class="muted" style="font-size:12px;margin-top:8px">
+                {% if ticket.show_table %}Mesa {{ order.table.number }}{% endif %}{% if ticket.show_table and ticket.show_datetime %} · {% endif %}{% if ticket.show_datetime %}{{ order.created_at|date:"d M Y" }}{% endif %}
+            </p>
         </div>
 
         {# Items #}
@@ -32,7 +53,7 @@
             {% if order.payment.tip %}
             <div class="sline"><span>Propina</span><span class="v">${{ order.payment.tip }}</span></div>
             {% endif %}
-            <div class="stot" style="margin-bottom:10px"><span class="l">Total</span><span class="v" style="font-size:30px">${{ order.payment.total }}</span></div>
+            <div class="stot" style="margin-bottom:10px"><span class="l">Total</span><span class="v" style="font-size:30px;color:{{ ticket.accent_color|default:'var(--ink)' }}">${{ order.payment.total }}</span></div>
 
             <div class="sline"><span>Método</span><span class="v" style="font-family:var(--sans);font-weight:700">{{ order.payment.get_method_display }}</span></div>
             {% if order.payment.method == 'cash' %}
@@ -45,9 +66,18 @@
             {% endif %}
             {% endif %}
             <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-3);padding-top:12px;margin-top:10px;border-top:1px solid var(--hairline)" class="mono">
-                <span>{{ order.payment.collected_by.get_full_name|default:order.payment.collected_by.username }}</span>
+                <span>{% if ticket.show_cashier %}{{ order.payment.collected_by.get_full_name|default:order.payment.collected_by.username }}{% endif %}</span>
                 <span>{{ order.payment.created_at|date:"H:i" }}</span>
             </div>
+            {% if ticket.show_qr and ticket.billing_url %}
+            <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px dashed var(--hairline)">
+                <img id="receiptQr" data-qr="{{ ticket.billing_url }}" alt="QR de facturación" style="width:124px;height:124px;margin:0 auto;display:block;image-rendering:pixelated">
+                <div style="font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);margin-top:7px;font-weight:600">Factura tu consumo</div>
+            </div>
+            {% endif %}
+            {% if ticket.footer_message %}
+            <p style="text-align:center;font-size:12.5px;color:var(--ink-2);margin-top:14px;font-weight:600">{{ ticket.footer_message }}</p>
+            {% endif %}
         </div>
 
         {# Acciones #}
@@ -60,4 +90,19 @@
         </div>
     </div>
 </div>
+
+{% if ticket.show_qr and ticket.billing_url %}
+<script>
+(function(){
+    var img = document.getElementById('receiptQr');
+    if (!img || !window.qrcode) return;
+    try {
+        var qr = qrcode(0, 'M');
+        qr.addData(img.getAttribute('data-qr'));
+        qr.make();
+        img.src = qr.createDataURL(4, 0);
+    } catch (e) {}
+})();
+</script>
+{% endif %}
 {% endblock %}
