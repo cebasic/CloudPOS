@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Reportes — CocosBarrancos{% endblock %}
+{% block title %}Reportes — Cocos Barrancos{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
 {% block page_title %}Reportes{% endblock %}
 
 {% block extra_head %}
@@ -7,156 +8,125 @@
 {% endblock %}
 
 {% block content %}
-{# Filters #}
-<div class="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-6">
-    <form method="get" class="flex flex-wrap items-end gap-3">
-        <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Desde</label>
-            <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
-                   class="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
-        </div>
-        <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Hasta</label>
-            <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
-                   class="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
-        </div>
-        <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-bold text-white hover:bg-brand-600 transition-colors">Filtrar</button>
-        <a href="{% url 'reports:export_csv' %}?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}"
-           class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-600 transition-colors">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            Exportar CSV
+<div class="view-fade">
+
+<div class="page-head">
+    <div>
+        <h1>Reportes &amp; <em>análisis</em></h1>
+        <p class="sub">Métricas operativas y de venta · {{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</p>
+    </div>
+    <div class="right">
+        <form method="get" class="filters">
+            <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}" class="input" style="width:auto">
+            <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}" class="input" style="width:auto">
+            <button type="submit" class="btn">Filtrar</button>
+        </form>
+        <a href="{% url 'reports:export_csv' %}?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+            Exportar
         </a>
-    </form>
-</div>
-
-{# KPIs row 1 #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Órdenes</p>
-        <p class="text-3xl font-bold text-white">{{ total_orders }}</p>
-        <p class="text-xs text-slate-500 mt-1">{{ date_from|date:"d/m" }} — {{ date_to|date:"d/m/Y" }}</p>
-    </div>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ingresos</p>
-        <p class="text-3xl font-bold text-emerald-400">${{ total_revenue|floatformat:2 }}</p>
-        <p class="text-xs text-slate-500 mt-1">Ticket prom: ${{ avg_ticket|floatformat:2 }}</p>
-    </div>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Propinas</p>
-        <p class="text-3xl font-bold text-yellow-400">${{ total_tips|floatformat:2 }}</p>
-        <p class="text-xs text-slate-500 mt-1">Del periodo</p>
-    </div>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Descuentos</p>
-        <p class="text-3xl font-bold text-rose-400">${{ total_discounts|floatformat:2 }}</p>
-        <p class="text-xs text-slate-500 mt-1">Cancelaciones: {{ cancel_rate|floatformat:1 }}%</p>
     </div>
 </div>
 
-{# Payment breakdown #}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-4">
-        <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-        </div>
-        <div>
-            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Efectivo</p>
-            <p class="text-2xl font-bold text-emerald-400">${{ cash_revenue|floatformat:2 }}</p>
+{# KPIs #}
+<div class="kpis">
+    <div class="kpi hero">
+        <div class="label"><span class="dotgreen"></span> Ingresos del periodo</div>
+        <div class="value">$<span>{{ total_revenue|floatformat:2 }}</span><span class="unit">MXN</span></div>
+        <div class="delta">{{ total_orders }} orden{{ total_orders|pluralize:"es" }} cobrada{{ total_orders|pluralize }}</div>
+    </div>
+    <div class="kpi">
+        <div class="label">Ticket promedio</div>
+        <div class="value"><span class="small">${{ avg_ticket|floatformat:0 }}</span></div>
+        <div class="delta">por orden</div>
+    </div>
+    <div class="kpi">
+        <div class="label">Propinas</div>
+        <div class="value"><span class="small">${{ total_tips|floatformat:0 }}</span></div>
+        <div class="delta">del periodo</div>
+    </div>
+    <div class="kpi">
+        <div class="label">Descuentos</div>
+        <div class="value"><span class="small">${{ total_discounts|floatformat:0 }}</span></div>
+        <div class="delta {% if cancel_rate > 0 %}down{% endif %}">cancelación {{ cancel_rate|floatformat:1 }}%</div>
+    </div>
+</div>
+
+<div class="reports-grid" style="margin-bottom:20px">
+    {# Ventas por día #}
+    <div class="card">
+        <div class="card-head"><h2>Ventas <em>por día</em></h2><span class="meta">ingresos + órdenes</span></div>
+        <div class="chart">
+            <canvas id="dailyChart" height="190"></canvas>
         </div>
     </div>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-4">
-        <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg>
-        </div>
-        <div>
-            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Tarjeta</p>
-            <p class="text-2xl font-bold text-blue-400">${{ card_revenue|floatformat:2 }}</p>
-        </div>
-    </div>
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex items-center gap-4">
-        <div class="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
-            <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
-        </div>
-        <div>
-            <p class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Pagos Mixtos</p>
-            <p class="text-2xl font-bold text-purple-400">{{ mixed_count }}</p>
-            <p class="text-xs text-slate-500">transacciones</p>
+
+    {# Mix de pagos #}
+    <div class="card">
+        <div class="card-head"><h2>Mix de <em>pagos</em></h2><span class="meta">del periodo</span></div>
+        <div class="card-body">
+            {% widthratio cash_revenue total_revenue 100 as cash_pct %}
+            {% widthratio card_revenue total_revenue 100 as card_pct %}
+            <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--paper-2);border:1px solid var(--hairline);margin-bottom:16px">
+                <div style="width:{{ cash_pct }}%;background:var(--terracotta)" title="Efectivo"></div>
+                <div style="width:{{ card_pct }}%;background:var(--ocean)" title="Tarjeta"></div>
+            </div>
+            <div class="donut-legend">
+                <div><i style="background:var(--terracotta)"></i> Efectivo <span class="pct">${{ cash_revenue|floatformat:2 }} · {{ cash_pct }}%</span></div>
+                <div><i style="background:var(--ocean)"></i> Tarjeta <span class="pct">${{ card_revenue|floatformat:2 }} · {{ card_pct }}%</span></div>
+                <div><i style="background:var(--marigold)"></i> Pagos mixtos <span class="pct">{{ mixed_count }} transacción{{ mixed_count|pluralize:"es" }}</span></div>
+            </div>
+            <hr class="hair"/>
+            <div class="sline"><span style="font-weight:700">Total del periodo</span><span class="v" style="font-weight:700">${{ total_revenue|floatformat:2 }}</span></div>
         </div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    {# Daily chart #}
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4">Ventas por Día</h3>
-        <canvas id="dailyChart" height="180"></canvas>
-    </div>
-
-    {# Hourly chart (single day only) #}
-    {% if single_day %}
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4">Distribución por Hora</h3>
-        <canvas id="hourlyChart" height="180"></canvas>
-    </div>
-    {% else %}
-    {# Top items when range #}
-    <div class="bg-slate-800 rounded-xl border border-slate-700 p-5">
-        <h3 class="text-sm font-semibold text-slate-300 mb-4">Platillos más Vendidos</h3>
+<div class="reports-grid">
+    {# Top platillos #}
+    <div class="card">
+        <div class="card-head"><h2>Top <em>platillos</em></h2><span class="meta">unidades vendidas</span></div>
         {% include "reports/partials/top_items.html" %}
     </div>
-    {% endif %}
-</div>
 
-{% if not single_day %}
-{# Nothing – top items already shown above #}
-{% else %}
-{# Show top items below when single day #}
-<div class="bg-slate-800 rounded-xl border border-slate-700 p-5 mb-6">
-    <h3 class="text-sm font-semibold text-slate-300 mb-4">Platillos más Vendidos</h3>
-    {% include "reports/partials/top_items.html" %}
-</div>
-{% endif %}
+    <div>
+        {# Distribución por hora (solo un día) #}
+        {% if single_day %}
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-head"><h2>Distribución <em>por hora</em></h2><span class="meta">órdenes</span></div>
+            <div class="chart" style="min-height:0">
+                <canvas id="hourlyChart" height="160"></canvas>
+            </div>
+        </div>
+        {% endif %}
 
-{# Orders by waiter #}
-<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-    <div class="px-5 py-4 border-b border-slate-700">
-        <h3 class="text-sm font-semibold text-slate-300">Órdenes por Mesero</h3>
+        {# Órdenes por mesero #}
+        <div class="card">
+            <div class="card-head"><h2>Órdenes <em>por mesero</em></h2><span class="meta">del periodo</span></div>
+            <div class="list">
+                {% for row in orders_by_waiter %}
+                <div class="item">
+                    <div class="num">{{ row.waiter__first_name|slice:":1"|upper }}{{ row.waiter__last_name|slice:":1"|upper|default:"" }}</div>
+                    <div>
+                        <div class="ttl">{{ row.waiter__first_name }} {{ row.waiter__last_name }}</div>
+                        <div class="sub">{{ row.waiter__username }}</div>
+                    </div>
+                    <div class="right">
+                        <span class="chip terra">{{ row.order_count }} orden{{ row.order_count|pluralize:"es" }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="padding:28px 18px;text-align:center" class="muted">Sin datos para el periodo seleccionado.</p>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-    <table class="min-w-full">
-        <thead class="bg-slate-900/50">
-            <tr>
-                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Mesero</th>
-                <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Órdenes</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-700">
-            {% for row in orders_by_waiter %}
-            <tr class="hover:bg-slate-700/40 transition-colors">
-                <td class="px-5 py-3 text-sm text-slate-200">
-                    {{ row.waiter__first_name }} {{ row.waiter__last_name }}
-                    <span class="text-slate-500 text-xs">({{ row.waiter__username }})</span>
-                </td>
-                <td class="px-5 py-3 text-right">
-                    <span class="inline-flex items-center rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-400">{{ row.order_count }}</span>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="2" class="px-5 py-8 text-center text-slate-500 text-sm">Sin datos para el periodo seleccionado.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var CHART_DEFAULTS = {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-            y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(51,65,85,0.8)' } },
-            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
-        }
-    };
+    var INK3 = '#8A8278';
+    var GRID = 'rgba(224,214,194,0.6)';
 
     var dailyData = {{ daily_sales_json|safe }};
     if (document.getElementById('dailyChart') && dailyData.length) {
@@ -168,8 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: 'Ingresos',
                         data: dailyData.map(function(d){ return d.revenue; }),
-                        backgroundColor: 'rgba(249,115,22,0.6)',
-                        borderColor: 'rgba(249,115,22,1)',
+                        backgroundColor: 'rgba(200,85,61,0.75)',
+                        borderColor: '#B0432D',
                         borderWidth: 1,
                         borderRadius: 5,
                         yAxisID: 'y',
@@ -178,10 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         label: 'Órdenes',
                         data: dailyData.map(function(d){ return d.count; }),
                         type: 'line',
-                        borderColor: 'rgba(99,102,241,0.9)',
-                        backgroundColor: 'rgba(99,102,241,0.1)',
+                        borderColor: '#3F7A8B',
+                        backgroundColor: 'rgba(63,122,139,0.1)',
                         borderWidth: 2,
                         pointRadius: 4,
+                        pointBackgroundColor: '#3F7A8B',
                         tension: 0.3,
                         yAxisID: 'y2',
                     }
@@ -189,11 +160,11 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                plugins: { legend: { display: true, labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } } } },
+                plugins: { legend: { display: true, labels: { color: INK3, boxWidth: 12, font: { size: 11, family: 'Nunito' } } } },
                 scales: {
-                    y: { beginAtZero: true, ticks: { color: '#94a3b8', callback: function(v){ return '$'+v; } }, grid: { color: 'rgba(51,65,85,0.8)' } },
-                    y2: { beginAtZero: true, position: 'right', ticks: { color: '#6366f1', stepSize: 1 }, grid: { display: false } },
-                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    y: { beginAtZero: true, ticks: { color: INK3, callback: function(v){ return '$'+v; } }, grid: { color: GRID } },
+                    y2: { beginAtZero: true, position: 'right', ticks: { color: '#3F7A8B', stepSize: 1 }, grid: { display: false } },
+                    x: { ticks: { color: INK3 }, grid: { display: false } }
                 }
             }
         });
@@ -208,15 +179,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Órdenes',
                     data: hourlyData.map(function(d){ return d.count; }),
-                    backgroundColor: 'rgba(20,184,166,0.6)',
-                    borderColor: 'rgba(20,184,166,1)',
+                    backgroundColor: 'rgba(212,160,58,0.7)',
+                    borderColor: '#B7872A',
                     borderWidth: 1,
                     borderRadius: 4,
                 }]
             },
-            options: CHART_DEFAULTS
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: INK3, stepSize: 1 }, grid: { color: GRID } },
+                    x: { ticks: { color: INK3 }, grid: { display: false } }
+                }
+            }
         });
     }
 });
 </script>
+
+</div>
 {% endblock %}

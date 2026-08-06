@@ -1,22 +1,35 @@
-{% extends "base.html" %}
-{% block title %}{{ title }} - CocosBarrancos{% endblock %}
-{% block page_title %}{{ title }}{% endblock %}
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% block title %}Nueva orden — Cocos Barrancos{% endblock %}
+{% block page_title %}Nueva orden{% endblock %}
 
-{% block content %}
-<div class="max-w-lg">
-    <form method="post" class="space-y-5 bg-slate-800 rounded-xl border border-slate-700 p-6">
-        {% csrf_token %}
-        {% for field in form %}
-        <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-300 mb-1.5">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}<p class="mt-1 text-sm text-red-400">{{ field.errors.0 }}</p>{% endif %}
+{% block form_title %}Nueva orden{% endblock %}
+{% block form_subtitle %}Selecciona la mesa para abrir la cuenta{% endblock %}
+
+{% block form_body %}
+<div class="form-grid">
+    <div class="fg">
+        <label>Mesa</label>
+        {% if form.fields.table.queryset %}
+        <div class="chip-pick accent" data-pick>
+            {% for t in form.fields.table.queryset %}
+            <label class="{% if form.table.value|stringformat:'s' == t.pk|stringformat:'s' %}on{% endif %}">
+                <input type="radio" name="table" value="{{ t.pk }}" {% if form.table.value|stringformat:'s' == t.pk|stringformat:'s' %}checked{% endif %} required>
+                {{ t.number }} · {{ t.capacity }}p
+            </label>
+            {% endfor %}
         </div>
-        {% endfor %}
-        <div class="flex items-center gap-3 pt-4 border-t border-slate-700">
-            <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">Crear Orden</button>
-            <a href="{% url 'orders:dashboard' %}" class="text-sm text-slate-400 hover:text-slate-200">Cancelar</a>
-        </div>
-    </form>
+        {% else %}
+        <p class="hint" style="color:var(--berry);font-weight:600">No hay mesas disponibles en este momento.</p>
+        {% endif %}
+        {% if form.table.errors %}<span class="err">{{ form.table.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="fg">
+        <label for="{{ form.notes.id_for_label }}">Notas para cocina (opcional)</label>
+        <textarea class="textarea" name="notes" id="{{ form.notes.id_for_label }}" rows="2" placeholder="Ej. alergias, cumpleaños, preferencias...">{{ form.notes.value|default:'' }}</textarea>
+        {% if form.notes.errors %}<span class="err">{{ form.notes.errors.0 }}</span>{% endif %}
+    </div>
 </div>
 {% endblock %}
+
+{% block form_note %}Se asignará el folio automáticamente{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">Abrir orden</button>{% endblock %}

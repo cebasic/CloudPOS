@@ -62,6 +62,15 @@ TEMPLATES = [
     },
 ]
 
+if DEBUG:
+    # En desarrollo: recargar templates en cada request (sin cached.Loader),
+    # para ver cambios de UI con solo refrescar el navegador.
+    TEMPLATES[0]["APP_DIRS"] = False
+    TEMPLATES[0]["OPTIONS"]["loaders"] = [
+        "django.template.loaders.filesystem.Loader",
+        "django.template.loaders.app_directories.Loader",
+    ]
+
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 

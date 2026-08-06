@@ -1,70 +1,39 @@
-{% extends "base.html" %}
-{% block title %}Registrar Gasto — CocosBarrancos{% endblock %}
-{% block page_title %}Registrar Gasto{% endblock %}
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% block title %}Registrar gasto — Cocos Barrancos{% endblock %}
+{% block page_title %}Registrar gasto{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
 
-{% block content %}
-<div class="max-w-lg">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181"/>
-                </svg>
-            </div>
-            <div>
-                <h2 class="text-sm font-semibold text-slate-200">Nuevo Gasto del Día</h2>
-                <p class="text-xs text-slate-500">Sesión #{{ session.pk }} — {{ session.opened_at|date:"d/m/Y H:i" }}</p>
-            </div>
+{% block form_title %}Nuevo gasto del día{% endblock %}
+{% block form_subtitle %}Sesión #{{ session.pk }} · abierta {{ session.opened_at|date:"d/m/Y H:i" }}{% endblock %}
+
+{% block form_body %}
+<div class="form-grid">
+    {% if form.non_field_errors %}
+    <div class="fg"><span class="err">{{ form.non_field_errors.0 }}</span></div>
+    {% endif %}
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.category.id_for_label }}">Categoría</label>
+            {{ form.category }}
+            {% if form.category.errors %}<span class="err">{{ form.category.errors.0 }}</span>{% endif %}
         </div>
-
-        <form method="post" class="px-6 py-5 space-y-4">
-            {% csrf_token %}
-
-            {% if form.errors %}
-            <div class="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3">
-                {% for field, errors in form.errors.items %}{% for error in errors %}
-                <p class="text-sm text-red-400">{{ error }}</p>
-                {% endfor %}{% endfor %}
+        <div class="fg">
+            <label for="{{ form.amount.id_for_label }}">Monto</label>
+            <div class="prefix-input">
+                <span class="pfx">$</span>
+                <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00"
+                       value="{{ form.amount.value|default:'' }}" id="{{ form.amount.id_for_label }}" autofocus>
             </div>
-            {% endif %}
-
-            <div>
-                <label for="{{ form.category.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                    Categoría
-                </label>
-                {{ form.category }}
-            </div>
-
-            <div>
-                <label for="{{ form.amount.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                    Monto <span class="text-red-400">*</span>
-                </label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">$</span>
-                    <input type="number" name="amount" step="0.01" min="0.01"
-                           id="{{ form.amount.id_for_label }}"
-                           value="{{ form.amount.value|default:'' }}"
-                           class="block w-full rounded-lg border border-slate-600 bg-slate-700 pl-7 pr-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
-                           placeholder="0.00" autofocus>
-                </div>
-            </div>
-
-            <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                    Descripción <span class="text-red-400">*</span>
-                </label>
-                {{ form.description }}
-            </div>
-
-            <div class="flex items-center gap-3 pt-3 border-t border-slate-700">
-                <button type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-colors">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Registrar Gasto
-                </button>
-                <a href="{% url 'cashier:dashboard' %}" class="text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancelar</a>
-            </div>
-        </form>
+            {% if form.amount.errors %}<span class="err">{{ form.amount.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="fg">
+        <label for="{{ form.description.id_for_label }}">Descripción</label>
+        {{ form.description }}
+        {% if form.description.errors %}<span class="err">{{ form.description.errors.0 }}</span>{% endif %}
     </div>
 </div>
 {% endblock %}
+
+{% block form_note %}Se descuenta del efectivo esperado en caja{% endblock %}
+{% block form_actions %}<button type="submit" class="btn danger">Registrar gasto</button>{% endblock %}

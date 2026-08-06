@@ -1,53 +1,69 @@
 {% extends "base.html" %}
-{% block title %}Mesas - CocosBarrancos{% endblock %}
+{% block title %}Mesas — Cocos Barrancos{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
 {% block page_title %}Mesas{% endblock %}
 
 {% block content %}
-{% if user.role == 'admin' or user.role == 'manager' %}
-<div class="mb-6 flex justify-end">
-    <a href="{% url 'tables:create' %}" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Nueva Mesa
-    </a>
-</div>
-{% endif %}
+<div class="view-fade">
 
-<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-    {% for table in tables %}
-    <div class="relative rounded-xl border-2 p-4 text-center transition-shadow hover:shadow-lg
-        {% if table.status == 'available' %}border-emerald-500/40 bg-emerald-500/10
-        {% elif table.status == 'occupied' %}border-red-500/40 bg-red-500/10
-        {% else %}border-amber-500/40 bg-amber-500/10{% endif %}">
-        <div class="text-2xl font-bold
-            {% if table.status == 'available' %}text-emerald-400
-            {% elif table.status == 'occupied' %}text-red-400
-            {% else %}text-amber-400{% endif %}">{{ table.number }}</div>
-        <div class="mt-1 text-xs text-slate-400">{{ table.capacity }} personas</div>
-        <div class="mt-2">
-            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                {% if table.status == 'available' %}bg-emerald-500/20 text-emerald-400
-                {% elif table.status == 'occupied' %}bg-red-500/20 text-red-400
-                {% else %}bg-amber-500/20 text-amber-400{% endif %}">
-                {{ table.get_status_display }}
-            </span>
+<div class="page-head">
+    <div>
+        <h1>Mesas del <em>Restaurant</em></h1>
+        <p class="sub">{{ tables|length }} mesa{{ tables|length|pluralize }} registrada{{ tables|length|pluralize }}</p>
+    </div>
+    <div class="right">
+        <div class="legend">
+            <span><i class="l-a"></i> Libre</span>
+            <span><i class="l-o"></i> Ocupada</span>
+            <span><i class="l-r"></i> Reservada</span>
         </div>
-        {% if table.status == 'available' %}
-        <a href="{% url 'orders:create' %}?table={{ table.pk }}" class="mt-3 block text-xs text-brand-400 hover:text-brand-300 font-medium">Nueva Orden</a>
-        {% endif %}
         {% if user.role == 'admin' or user.role == 'manager' %}
-        <div class="mt-2 flex justify-center gap-2 text-xs">
-            <a href="{% url 'tables:edit' table.pk %}" class="text-slate-400 hover:text-slate-200">Editar</a>
-            <a href="{% url 'tables:delete' table.pk %}" class="text-red-500 hover:text-red-400">Eliminar</a>
-        </div>
+        <a href="{% url 'tables:create' %}" class="btn primary"
+           hx-get="{% url 'tables:create' %}" hx-target="#modal-root" hx-swap="innerHTML">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+            Nueva mesa
+        </a>
         {% endif %}
     </div>
-    {% empty %}
-    <div class="col-span-full text-center py-16 text-slate-500">
-        No hay mesas registradas.
-        {% if user.role == 'admin' or user.role == 'manager' %}
-        <a href="{% url 'tables:create' %}" class="text-brand-400 hover:underline ml-1">Crear la primera mesa</a>
-        {% endif %}
+</div>
+
+<div class="floor" style="min-height:0">
+    <div class="tables-grid">
+        {% for table in tables %}
+        <div class="ftable {{ table.status }}" style="cursor:default">
+            {% if table.status == 'occupied' %}<span class="pulse"></span>{% endif %}
+            <div class="n">{{ table.number|stringformat:"02d" }}</div>
+            <div class="cap">{{ table.capacity }} pax · {{ table.get_status_display|lower }}</div>
+            <div style="display:flex;gap:6px;margin-top:10px">
+                {% if table.status == 'available' %}
+                <a href="{% url 'orders:create' %}?table={{ table.pk }}" class="kbtn" style="background:var(--sage-2)" title="Nueva orden"
+                   hx-get="{% url 'orders:create' %}?table={{ table.pk }}" hx-target="#modal-root" hx-swap="innerHTML">Orden</a>
+                {% endif %}
+                {% if user.role == 'admin' or user.role == 'manager' %}
+                <a href="{% url 'tables:edit' table.pk %}" class="icbtn" title="Editar"
+                   hx-get="{% url 'tables:edit' table.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20h4l10-10-4-4L4 16v4Z"/></svg>
+                </a>
+                <a href="{% url 'tables:delete' table.pk %}" class="icbtn" title="Eliminar"
+                   hx-get="{% url 'tables:delete' table.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column:1/-1;text-align:center;padding:42px">
+            <p class="muted">No hay mesas registradas.</p>
+            {% if user.role == 'admin' or user.role == 'manager' %}
+            <a href="{% url 'tables:create' %}" class="btn primary sm" style="margin-top:12px"
+               hx-get="{% url 'tables:create' %}" hx-target="#modal-root" hx-swap="innerHTML">
+                Crear la primera mesa
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+</div>
+
 </div>
 {% endblock %}

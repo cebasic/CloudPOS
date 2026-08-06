@@ -1,29 +1,86 @@
-{% extends "base.html" %}
-{% block title %}{{ title }} - CocosBarrancos{% endblock %}
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% block title %}{{ title }} — Cocos Barrancos{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
+{% block page_form_width %}720px{% endblock %}
 
-{% block content %}
-<div class="max-w-lg">
-    <form method="post" enctype="multipart/form-data" class="space-y-5 bg-slate-800 rounded-xl border border-slate-700 p-6">
-        {% csrf_token %}
-        {% for field in form %}
-        <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-300 mb-1.5">{{ field.label }}</label>
-            {% if field.field.widget.input_type == 'checkbox' %}
-            <div class="flex items-center gap-2">
-                {{ field }}
-                <span class="text-sm text-slate-400">Marcar si está disponible</span>
-            </div>
+{% block form_size %}lg{% endblock %}
+{% block form_title %}{{ title }}{% endblock %}
+{% block form_subtitle %}{% if form.instance.pk %}Edita los datos del platillo{% else %}Agrega una entrada al menú{% endif %}{% endblock %}
+{% block form_attrs %}enctype="multipart/form-data"{% endblock %}
+
+{% block form_body %}
+<div style="display:grid;grid-template-columns:180px 1fr;gap:18px" class="dish-form-grid">
+    <style>@media (max-width:640px){ .dish-form-grid{grid-template-columns:1fr !important} }</style>
+    <div class="fg">
+        <label>Foto</label>
+        <label class="dish-photo" style="border:1px dashed var(--hairline-2); cursor:pointer; border-radius:12px" for="{{ form.image.id_for_label }}">
+            {% if form.instance.image %}
+            <img src="{{ form.instance.image.url }}" alt="{{ form.instance.name }}">
             {% else %}
-            {{ field }}
+            <span class="ph-label">📷 subir imagen</span>
             {% endif %}
-            {% if field.errors %}<p class="mt-1 text-sm text-red-400">{{ field.errors.0 }}</p>{% endif %}
+        </label>
+        <div style="display:none">{{ form.image }}</div>
+        <p class="hint">PNG o JPG</p>
+        {% if form.image.errors %}<span class="err">{{ form.image.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-grid">
+        <div class="form-grid cols-2">
+            <div class="fg">
+                <label for="{{ form.name.id_for_label }}">Nombre</label>
+                {{ form.name }}
+                {% if form.name.errors %}<span class="err">{{ form.name.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="fg">
+                <label for="{{ form.price.id_for_label }}">Precio</label>
+                <div class="prefix-input">
+                    <span class="pfx">$</span>
+                    <input type="number" name="price" step="0.01" min="0" value="{{ form.price.value|default:'' }}" placeholder="0.00" id="{{ form.price.id_for_label }}">
+                </div>
+                {% if form.price.errors %}<span class="err">{{ form.price.errors.0 }}</span>{% endif %}
+            </div>
         </div>
-        {% endfor %}
-        <div class="flex items-center gap-3 pt-4 border-t border-slate-700">
-            <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">Guardar</button>
-            <a href="{% url 'menu:category_list' %}" class="text-sm text-slate-400 hover:text-slate-200">Cancelar</a>
+        <div class="form-grid cols-2">
+            <div class="fg">
+                <label for="{{ form.category.id_for_label }}">Categoría</label>
+                {{ form.category }}
+                {% if form.category.errors %}<span class="err">{{ form.category.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="fg">
+                <label>Disponible</label>
+                <div class="chip-pick" data-pick>
+                    <label class="{% if form.available.value %}on{% endif %}">
+                        <input type="radio" name="available" value="True" {% if form.available.value %}checked{% endif %}> Sí
+                    </label>
+                    <label class="{% if not form.available.value %}on{% endif %}">
+                        <input type="radio" name="available" value="False" {% if not form.available.value %}checked{% endif %}> 86
+                    </label>
+                </div>
+            </div>
         </div>
-    </form>
+        <div class="fg">
+            <label for="{{ form.description.id_for_label }}">Descripción</label>
+            {{ form.description }}
+            {% if form.description.errors %}<span class="err">{{ form.description.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
 </div>
+<script>
+(function(){
+    var input = document.getElementById('{{ form.image.id_for_label }}');
+    if (!input) return;
+    input.addEventListener('change', function(){
+        var box = document.querySelector('label[for="{{ form.image.id_for_label }}"]');
+        if (input.files && input.files[0] && box) {
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(input.files[0]);
+            box.innerHTML = '';
+            box.appendChild(img);
+        }
+    });
+})();
+</script>
 {% endblock %}
+
+{% block form_note %}Se publica al menú al guardar{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">{% if form.instance.pk %}Guardar cambios{% else %}Publicar{% endif %}</button>{% endblock %}

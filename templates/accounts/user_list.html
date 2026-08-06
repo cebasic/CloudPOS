@@ -1,60 +1,73 @@
 {% extends "base.html" %}
-{% block title %}Usuarios - CocosBarrancos{% endblock %}
+{% block title %}Usuarios — Cocos Barrancos{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
 {% block page_title %}Usuarios{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-    <p class="text-sm text-slate-400">{{ users.count }} usuario{{ users.count|pluralize:"s" }} registrado{{ users.count|pluralize:"s" }}</p>
-    <a href="{% url 'accounts:user_create' %}" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Nuevo Usuario
-    </a>
+<div class="view-fade">
+
+<div class="page-head">
+    <div>
+        <h1>Equipo &amp; <em>usuarios</em></h1>
+        <p class="sub">{{ users.count }} cuenta{{ users.count|pluralize }} registrada{{ users.count|pluralize }}</p>
+    </div>
+    <div class="right">
+        <a href="{% url 'accounts:user_create' %}" class="btn primary"
+           hx-get="{% url 'accounts:user_create' %}" hx-target="#modal-root" hx-swap="innerHTML">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+            Nuevo usuario
+        </a>
+    </div>
 </div>
 
-<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-    <table class="min-w-full divide-y divide-slate-700">
-        <thead class="bg-slate-900/50">
-            <tr>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Usuario</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Nombre</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Rol</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-700">
-            {% for u in users %}
-            <tr class="hover:bg-slate-700/40 transition-colors">
-                <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-white">{{ u.username }}</td>
-                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-400 hidden sm:table-cell">{{ u.get_full_name|default:"-" }}</td>
-                <td class="whitespace-nowrap px-4 py-3 text-sm">
-                    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium capitalize
-                        {% if u.role == 'admin' %}bg-purple-500/10 text-purple-400
-                        {% elif u.role == 'manager' %}bg-blue-500/10 text-blue-400
-                        {% elif u.role == 'waiter' %}bg-emerald-500/10 text-emerald-400
-                        {% else %}bg-orange-500/10 text-orange-400{% endif %}">
-                        {{ u.get_role_display }}
-                    </span>
-                </td>
-                <td class="whitespace-nowrap px-4 py-3 text-sm">
+<div class="user-table">
+    <div class="uthead">
+        <div></div><div>Nombre / usuario</div><div>Rol</div><div>Estado</div><div>Email</div><div></div>
+    </div>
+    {% for u in users %}
+    <div class="user-row">
+        <div class="av" style="background:{% cycle '#C8553D' '#6B8E5A' '#3F7A8B' '#D4A03A' '#A14E5E' '#8E5B3A' %}">{{ u.get_full_name|default:u.username|slice:":1"|upper }}</div>
+        <div style="min-width:0">
+            <div class="nm">{{ u.get_full_name|default:u.username }}</div>
+            <div class="em">{{ u.username }}</div>
+        </div>
+        <div>
+            {% if u.role == 'admin' %}<span class="role-chip admin"><i></i> Admin</span>
+            {% elif u.role == 'manager' %}<span class="role-chip manager"><i></i> Gerente</span>
+            {% elif u.role == 'cashier' %}<span class="role-chip cashier"><i></i> Cajero</span>
+            {% elif u.role == 'waiter' %}<span class="role-chip waiter"><i></i> Mesero</span>
+            {% elif u.role == 'kitchen' %}<span class="role-chip kitchen"><i></i> Cocina</span>
+            {% else %}<span class="role-chip"><i></i> {{ u.get_role_display }}</span>{% endif %}
+        </div>
+        <div>
+            {% if u.is_active %}
+            <span class="chip sage"><i></i> Activo</span>
+            {% else %}
+            <span class="chip berry"><i></i> Inactivo</span>
+            {% endif %}
+        </div>
+        <div class="last" style="overflow:hidden;text-overflow:ellipsis">{{ u.email|default:"—" }}</div>
+        <div style="display:flex;justify-content:flex-end;gap:6px">
+            <a href="{% url 'accounts:user_edit' u.pk %}" class="icbtn" title="Editar"
+               hx-get="{% url 'accounts:user_edit' u.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20h4l10-10-4-4L4 16v4Z"/></svg>
+            </a>
+            <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="icbtn" title="{{ u.is_active|yesno:'Desactivar,Activar' }}">
                     {% if u.is_active %}
-                    <span class="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400">Activo</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
                     {% else %}
-                    <span class="inline-flex items-center rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400">Inactivo</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--sage-2)" stroke-width="1.7"><path d="M5 12l5 5 9-11"/></svg>
                     {% endif %}
-                </td>
-                <td class="whitespace-nowrap px-4 py-3 text-right text-sm space-x-3">
-                    <a href="{% url 'accounts:user_edit' u.pk %}" class="text-brand-400 hover:text-brand-300 font-medium">Editar</a>
-                    <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" class="text-slate-400 hover:text-slate-200">{{ u.is_active|yesno:"Desactivar,Activar" }}</button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="px-4 py-12 text-center text-slate-500 text-sm">No hay usuarios registrados.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </button>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <p style="padding:42px;text-align:center" class="muted">No hay usuarios registrados.</p>
+    {% endfor %}
+</div>
+
 </div>
 {% endblock %}
