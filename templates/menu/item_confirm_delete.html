@@ -1,5 +1,5 @@
 {% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
-{% block title %}Eliminar platillo — Cocos Barrancos{% endblock %}
+{% block title %}Eliminar platillo — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Eliminar platillo{% endblock %}
 {% block crumb_section %}Gestión{% endblock %}
 

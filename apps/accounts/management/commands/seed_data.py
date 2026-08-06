@@ -10,6 +10,20 @@ from apps.menu.models import Category, MenuItem
 class Command(BaseCommand):
     help = "Seed the database with sample data for development"
 
+    @staticmethod
+    def _get_or_create(model, defaults=None, **lookup):
+        """get_or_create tolerante a duplicados ya existentes.
+
+        El get_or_create normal revienta con MultipleObjectsReturned si la BD
+        ya tiene filas repetidas (p. ej. dos categorías con el mismo nombre),
+        lo que tumbaba el contenedor al re-ejecutar el seed. Aquí tomamos la
+        primera coincidencia en vez de fallar.
+        """
+        obj = model.objects.filter(**lookup).first()
+        if obj is not None:
+            return obj, False
+        return model.objects.create(**{**lookup, **(defaults or {})}), True
+
     def handle(self, *args, **options):
         self.stdout.write("Seeding database...")
 
@@ -83,18 +97,17 @@ class Command(BaseCommand):
 
         # Tables
         for i in range(1, 13):
-            table, created = Table.objects.get_or_create(
-                number=i,
-                defaults={"capacity": 4 if i <= 8 else 6},
+            table, created = self._get_or_create(
+                Table, {"capacity": 4 if i <= 8 else 6}, number=i,
             )
             if created:
                 self.stdout.write(f"  Created Table {i}")
 
         # Menu Categories & Items
-        entradas, _ = Category.objects.get_or_create(name="Entradas", defaults={"order": 1})
-        platos, _ = Category.objects.get_or_create(name="Platos Fuertes", defaults={"order": 2})
-        bebidas, _ = Category.objects.get_or_create(name="Bebidas", defaults={"order": 3})
-        postres, _ = Category.objects.get_or_create(name="Postres", defaults={"order": 4})
+        entradas, _ = self._get_or_create(Category, {"order": 1}, name="Entradas")
+        platos, _ = self._get_or_create(Category, {"order": 2}, name="Platos Fuertes")
+        bebidas, _ = self._get_or_create(Category, {"order": 3}, name="Bebidas")
+        postres, _ = self._get_or_create(Category, {"order": 4}, name="Postres")
 
         menu_items = [
             (entradas, "Nachos con Queso", "Totopos con queso gratinado, jalapeños y guacamole", Decimal("89.00")),
@@ -118,13 +131,10 @@ class Command(BaseCommand):
         ]
 
         for category, name, description, price in menu_items:
-            _, created = MenuItem.objects.get_or_create(
+            _, created = self._get_or_create(
+                MenuItem,
+                {"category": category, "description": description, "price": price},
                 name=name,
-                defaults={
-                    "category": category,
-                    "description": description,
-                    "price": price,
-                },
             )
             if created:
                 self.stdout.write(f"  Created menu item: {name}")

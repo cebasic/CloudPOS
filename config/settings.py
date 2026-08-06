@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.cashier",
     "apps.reservations",
+    "apps.tickets",
+    "apps.business",
 ]
 
 MIDDLEWARE = [
@@ -57,6 +59,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.tickets.context_processors.ticket_settings",
+                "apps.business.context_processors.business_settings",
             ],
         },
     },

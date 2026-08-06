@@ -1,59 +1,140 @@
 {% extends "base.html" %}
-{% block title %}Orden #{{ order.pk }} — Cocos Barrancos{% endblock %}
+{% block title %}Orden #{{ order.pk }} — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Órdenes › #{{ order.pk }}{% endblock %}
 
-{% block content %}
-<div class="view-fade">
-
-<div class="page-head">
-    <div>
-        <h1>Orden <em>#{{ order.pk }}</em> · Mesa {{ order.table.number }}</h1>
-        <p class="sub">{{ order.waiter.get_full_name|default:order.waiter.username }} · Abierta {{ order.created_at|time:"H:i" }}{% if order.notes %} · con notas{% endif %}</p>
-    </div>
-    <div class="right">
-        {% if order.status == 'pending' %}<span class="status-pill gold"><i></i> Pendiente</span>
-        {% elif order.status == 'in_progress' %}<span class="status-pill ocean"><i></i> En cocina</span>
-        {% elif order.status == 'ready' %}<span class="status-pill sage"><i></i> Lista</span>
-        {% elif order.status == 'delivered' %}<span class="status-pill berry"><i></i> Entregada</span>
-        {% elif order.status == 'closed' %}<span class="status-pill"><i></i> Cerrada</span>
-        {% else %}<span class="status-pill berry"><i></i> Cancelada</span>{% endif %}
-
-        {% if order.status != 'closed' and order.status != 'cancelled' %}
-            {% if order.status == 'ready' %}
-            <form method="post" action="{% url 'orders:update_status' order.pk %}" style="display:inline">
-                {% csrf_token %}<input type="hidden" name="status" value="delivered">
-                <button class="cta">
-                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>
-                    Entregada
-                </button>
-            </form>
-            {% endif %}
-            {% if order.status == 'delivered' or order.status == 'ready' or order.status == 'in_progress' %}
-            <a href="{% url 'orders:checkout' order.pk %}" class="cta primary">
-                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M7 6V4h10v2"/></svg>
-                Cobrar — ${{ order.total }}
-            </a>
-            {% endif %}
-            <form method="post" action="{% url 'orders:update_status' order.pk %}" onsubmit="return confirm('¿Cancelar esta orden?')" style="display:inline">
-                {% csrf_token %}<input type="hidden" name="status" value="cancelled">
-                <button class="btn danger">Cancelar</button>
-            </form>
-        {% endif %}
-        {% if order.status == 'closed' %}
-        <a href="{% url 'orders:receipt' order.pk %}" class="btn">Ver recibo</a>
-        {% endif %}
-    </div>
-</div>
-
-{% if order.notes %}
-<div class="notebox" style="margin-bottom:18px">"{{ order.notes }}"</div>
+{# Status + Cancelar van en el topbar, a la izquierda de la campana #}
+{% block topbar_actions %}
+{% if order.status == 'pending' %}<span class="status-pill gold"><i></i> Pendiente</span>
+{% elif order.status == 'in_progress' %}<span class="status-pill ocean"><i></i> En cocina</span>
+{% elif order.status == 'ready' %}<span class="status-pill sage"><i></i> Lista</span>
+{% elif order.status == 'delivered' %}<span class="status-pill berry"><i></i> Entregada</span>
+{% elif order.status == 'closed' %}<span class="status-pill"><i></i> Cerrada</span>
+{% else %}<span class="status-pill berry"><i></i> Cancelada</span>{% endif %}
+{% if order.status != 'closed' and order.status != 'cancelled' %}
+<form method="post" action="{% url 'orders:request_bill' order.pk %}" style="display:inline">
+    {% csrf_token %}
+    <button type="submit" class="btn sm" title="Enviar la cuenta a la impresora de caja">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+        Cuenta
+    </button>
+</form>
+<button type="button" class="btn danger sm" onclick="openCancelModal()">Cancelar</button>
 {% endif %}
+{% endblock %}
 
-<div class="detail">
-    {# Items #}
-    <div class="card" style="align-self:start">
+{% block content %}
+<style>
+/* ---- Detalle de orden · layout 2 columnas + táctil ---- */
+/* Escritorio/tablet horizontal: izquierda = Título + Platillos + Resumen
+   · derecha = Agregar platillo (panel fijo, alineado a la altura del título).
+   Filas auto.. + 1fr al final → la holgura va abajo, no entre secciones. */
+.od-page{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+        grid-template-rows:auto auto auto 1fr;
+        grid-template-areas:"head add" "items add" "summary add" "back add";
+        align-items:start; gap:12px 20px; min-width:0}
+/* min-width:0 evita que el contenido ancho (chips, tabla) desborde el grid */
+.od-head,.od-items,.od-summary,.od-add,.od-back{min-width:0; max-width:100%}
+.od-head{grid-area:head}
+.od-head .page-head{margin:0}
+.od-items{grid-area:items; overflow:hidden}
+.od-summary{grid-area:summary}
+.od-back{grid-area:back; margin-top:0}
+/* Panel "Agregar platillo": sube a la altura del header, cabe en la pantalla,
+   solo las tarjetas scrollean, el botón queda SIEMPRE visible abajo. */
+.od-add{grid-area:add; margin-top:0; display:flex; flex-direction:column;
+        position:sticky; top:64px; max-height:calc(100vh - 80px); overflow:hidden}
+/* Solo las tarjetas se encogen/scrollean; lo demás mantiene su altura */
+.od-add > h3, .od-add > .field, .od-add > .pk-cats, .od-add > form{flex:none}
+.od-add > .pk-grid{flex:1 1 auto; min-height:0; max-height:none}
+
+/* Selector de platillos por categoría con imagen */
+.pk-cats{display:flex; gap:8px; overflow-x:auto; max-width:100%; padding:2px 0 10px; -webkit-overflow-scrolling:touch}
+.pk-cat{flex:none; padding:9px 15px; border-radius:999px; border:1px solid var(--hairline); background:#fff; font-size:13px; font-weight:700; color:var(--ink-2); white-space:nowrap; cursor:pointer; min-height:40px}
+.pk-cat:hover{border-color:var(--hairline-2)}
+.pk-cat.on{background:var(--ink); color:#FAF6EE; border-color:var(--ink)}
+.pk-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(134px,1fr)); grid-auto-rows:max-content; align-items:start; gap:10px; max-height:min(460px,55vh); overflow-y:auto; padding:2px}
+.pk-card{position:relative; display:flex; flex-direction:column; text-align:left; border:1px solid var(--hairline); border-radius:12px; overflow:hidden; background:#fff; cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .12s}
+.pk-card:hover{border-color:var(--hairline-2); transform:translateY(-1px)}
+.pk-card.sel{border-color:var(--terracotta); box-shadow:0 0 0 3px var(--terracotta-glow)}
+.pk-card.sel .nm{color:var(--terracotta-2)}
+.pk-card.sel::after{content:"✓"; position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:var(--terracotta); color:#fff; display:grid; place-items:center; font-size:12px; font-weight:800; box-shadow:0 2px 6px rgba(27,24,21,.25)}
+.pk-card .ph{height:74px; flex:none; background:var(--paper-2); display:grid; place-items:center; overflow:hidden}
+.pk-card .ph img{width:100%; height:100%; object-fit:cover}
+.pk-card .ph .ph-x{font-size:20px; opacity:.35}
+.pk-card .b{padding:8px 10px}
+.pk-card .nm{display:block; font-weight:700; font-size:12.5px; line-height:1.25; letter-spacing:-0.01em; color:var(--ink)}
+.pk-card .pr{display:block; font-family:var(--mono); font-size:12px; color:var(--ink-3); margin-top:3px}
+.pk-empty{grid-column:1/-1; text-align:center; color:var(--ink-3); padding:26px; font-size:13px}
+
+/* Más cómodo al tacto */
+.addbox .stepper button{width:42px; font-size:20px}
+.addbox .stepper input{width:54px; height:42px}
+#add-submit{min-height:46px}
+#add-submit:disabled{opacity:.5; cursor:not-allowed}
+
+@media (max-width:1100px){
+  /* Móvil/tablet vertical: Título, Agregar, Platillos, Resumen */
+  .od-page{grid-template-columns:1fr; grid-template-rows:none; grid-template-areas:none; gap:14px}
+  .od-head,.od-items,.od-summary,.od-add,.od-back{grid-area:auto}
+  .od-head{order:0}
+  .od-add{order:1; position:static; max-height:none; overflow:visible}
+  .od-add .pk-grid{flex:none; max-height:min(420px,55vh)}
+  .od-items{order:2}
+  .od-summary{order:3}
+  .od-back{order:4; margin-top:4px}
+}
+
+/* Tabla de platillos → tarjetas siempre que esté apilado (tablet y móvil) */
+@media (max-width:1100px){
+  .od-items .thead{display:none}
+  .od-items .trow{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:12px 14px}
+  .od-items .trow > .dish{flex:1 1 100%; min-width:0; word-break:break-word}
+  .od-items .trow .price{margin-left:auto; font-size:15px}
+  .od-items .trow .acts{flex:0 0 auto}
+}
+
+</style>
+
+<div class="view-fade">
+<div class="od-page">
+
+<div class="od-head">
+    <div class="page-head">
+        <div>
+            <h1>Orden <em>#{{ order.pk }}</em> · Mesa {{ order.table.number }}</h1>
+            <p class="sub">{{ order.waiter.get_full_name|default:order.waiter.username }} · Abierta {{ order.created_at|time:"H:i" }}{% if order.notes %} · con notas{% endif %}</p>
+        </div>
+        <div class="right">
+            {% if order.status != 'closed' and order.status != 'cancelled' %}
+                {% if order.status == 'ready' %}
+                <form method="post" action="{% url 'orders:update_status' order.pk %}" style="display:inline">
+                    {% csrf_token %}<input type="hidden" name="status" value="delivered">
+                    <button class="cta">
+                        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12l5 5 9-11"/></svg>
+                        Entregada
+                    </button>
+                </form>
+                {% endif %}
+                {% if order.status == 'delivered' or order.status == 'ready' or order.status == 'in_progress' %}
+                <a href="{% url 'orders:checkout' order.pk %}" class="cta primary">
+                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M7 6V4h10v2"/></svg>
+                    Cobrar — ${{ order.total }}
+                </a>
+                {% endif %}
+            {% endif %}
+            {% if order.status == 'closed' %}
+            <a href="{% url 'orders:receipt' order.pk %}" class="btn">Ver recibo</a>
+            {% endif %}
+        </div>
+    </div>
+    {% if order.notes %}
+    <div class="notebox" style="margin-top:12px">"{{ order.notes }}"</div>
+    {% endif %}
+</div>
+    {# Platillos en la orden #}
+    <div class="card od-items">
         <div class="card-head">
-            <h2>Items <em>de la orden</em></h2>
+            <h2>Platillos <em>en la orden</em></h2>
             <span class="meta">{{ order.items.count }} platillo{{ order.items.count|pluralize }} <span id="items-update-badge" class="hidden" style="color:var(--terracotta-2)">· actualizando…</span></span>
         </div>
         <div class="thead">
@@ -68,90 +149,170 @@
         </div>
     </div>
 
-    {# Resumen + agregar #}
-    <div>
-        <div class="summary">
-            <h3>Resumen</h3>
-            <p class="sub">{{ order.items.count }} item{{ order.items.count|pluralize }} · Mesa {{ order.table.number }}</p>
-            <div class="sline"><span>Subtotal</span><span class="v">${{ order.subtotal }}</span></div>
-            {% if order.discount_amount %}
-            <div class="sline"><span>Descuento{% if order.discount_reason %} · {{ order.discount_reason }}{% endif %}</span><span class="v">−${{ order.discount_amount }}</span></div>
-            {% endif %}
-            <div class="stot"><span class="l">Total</span><span class="v">${{ order.total }}<span style="font-family:var(--sans);font-size:13px;color:var(--ink-3);margin-left:6px">MXN</span></span></div>
-            {% if order.status != 'closed' and order.status != 'cancelled' %}
-            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}
-            <a href="{% url 'orders:apply_discount' order.pk %}" class="btn ghost sm" style="margin-top:10px"
-               hx-get="{% url 'orders:apply_discount' order.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
-                % Aplicar descuento / cortesía
-            </a>
-            {% endif %}
-            {% endif %}
-        </div>
-
-        {% if order.status != 'closed' and order.status != 'cancelled' %}
-        <div class="addbox">
-            <h3>Agregar item</h3>
-            <div class="field">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                <input type="text" id="item-search" placeholder="Buscar platillo, ej: ceviche">
-            </div>
-            <form method="post" action="{% url 'orders:add_item' order.pk %}" class="form-grid">
-                {% csrf_token %}
-                <div class="fg">
-                    <select name="menu_item" id="menu-item-select" required class="select">
-                        <option value="">— Selecciona un platillo —</option>
-                        {% for item in item_form.menu_item.field.queryset %}
-                        <option value="{{ item.pk }}" data-search="{{ item.name|lower }}">{{ item.name }} — ${{ item.price }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-grid cols-2">
-                    <div class="fg">
-                        <label>Cantidad</label>
-                        <div class="stepper">
-                            <button type="button" data-step="-1">−</button>
-                            <input type="number" name="quantity" value="1" min="1" max="20">
-                            <button type="button" data-step="1">+</button>
-                        </div>
-                    </div>
-                    <div class="fg">
-                        <label>Notas</label>
-                        <input type="text" name="notes" placeholder="Opcional" class="input">
-                    </div>
-                </div>
-                <button type="submit" class="btn primary" style="justify-content:center">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
-                    Agregar a la orden
-                </button>
-            </form>
-        </div>
+    {# Resumen #}
+    <div class="summary od-summary">
+        <h3>Resumen</h3>
+        <p class="sub">{{ order.items.count }} item{{ order.items.count|pluralize }} · Mesa {{ order.table.number }}</p>
+        <div class="sline"><span>Subtotal</span><span class="v">${{ order.subtotal }}</span></div>
+        {% if order.discount_amount %}
+        <div class="sline"><span>Descuento{% if order.discount_reason %} · {{ order.discount_reason }}{% endif %}</span><span class="v">−${{ order.discount_amount }}</span></div>
         {% endif %}
-
-        <a href="{% url 'orders:dashboard' %}" class="btn ghost" style="margin-top:14px">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
-            Volver al Restaurant
+        <div class="stot"><span class="l">Total</span><span class="v">${{ order.total }}<span style="font-family:var(--sans);font-size:13px;color:var(--ink-3);margin-left:6px">MXN</span></span></div>
+        {% if order.status != 'closed' and order.status != 'cancelled' %}
+        {% if user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}
+        <a href="{% url 'orders:apply_discount' order.pk %}" class="btn ghost sm" style="margin-top:10px"
+           hx-get="{% url 'orders:apply_discount' order.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
+            % Aplicar descuento / cortesía
         </a>
+        {% endif %}
+        {% endif %}
     </div>
+
+    {# Agregar platillo #}
+    {% if order.status != 'closed' and order.status != 'cancelled' %}
+    <div class="addbox od-add" id="add-box">
+        <h3>Agregar platillo</h3>
+        <div class="field">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="text" id="item-search" placeholder="Buscar platillo, ej: ceviche">
+        </div>
+
+        {% regroup item_form.menu_item.field.queryset by category as cat_list %}
+        <div class="pk-cats">
+            <button type="button" class="pk-cat on" data-cat="all">Todas</button>
+            {% for cat in cat_list %}
+            <button type="button" class="pk-cat" data-cat="{{ cat.grouper.pk }}">{{ cat.grouper.name }}</button>
+            {% endfor %}
+        </div>
+
+        <div class="pk-grid">
+            {% for cat in cat_list %}{% for it in cat.list %}
+            <button type="button" class="pk-card" data-cat="{{ cat.grouper.pk }}" data-id="{{ it.pk }}" data-name="{{ it.name }}" data-search="{{ it.name|lower }}">
+                <span class="ph">{% if it.image %}<img src="{{ it.image.url }}" alt="{{ it.name }}">{% else %}<span class="ph-x">🍽️</span>{% endif %}</span>
+                <span class="b"><span class="nm">{{ it.name }}</span><span class="pr">${{ it.price }}</span></span>
+            </button>
+            {% endfor %}{% empty %}
+            <div class="pk-empty">No hay platillos disponibles.</div>
+            {% endfor %}
+        </div>
+
+        <form method="post" action="{% url 'orders:add_item' order.pk %}" class="form-grid" style="margin-top:14px">
+            {% csrf_token %}
+            <input type="hidden" name="menu_item" id="menu-item-input" required>
+            <div class="form-grid cols-2">
+                <div class="fg">
+                    <label>Cantidad</label>
+                    <div class="stepper">
+                        <button type="button" data-step="-1">−</button>
+                        <input type="number" name="quantity" value="1" min="1" max="20">
+                        <button type="button" data-step="1">+</button>
+                    </div>
+                </div>
+                <div class="fg">
+                    <label>Notas</label>
+                    <input type="text" name="notes" placeholder="Opcional" class="input">
+                </div>
+            </div>
+            <button type="submit" id="add-submit" class="btn primary" style="justify-content:center" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+                <span id="add-submit-label">Selecciona un platillo</span>
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'orders:dashboard' %}" class="btn ghost od-back">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+        Volver al Restaurant
+    </a>
 </div>
 
-{# Live search del buscador de platillos #}
+{# Modal de cancelar orden (estilo del sistema) #}
+{% if order.status != 'closed' and order.status != 'cancelled' %}
+<div class="modal-backdrop" id="cancel-backdrop">
+    <div class="modal">
+        <div class="modal-head">
+            <div>
+                <h3>Cancelar orden</h3>
+                <div class="ms">Mesa {{ order.table.number }} · #{{ order.pk }}</div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeCancelModal()" title="Cerrar">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:14px;color:var(--ink-2);line-height:1.5">¿Seguro que deseas cancelar esta orden?<br><br>
+                Se liberará la mesa y <b>no se podrá deshacer</b>.</p>
+        </div>
+        <div class="modal-foot">
+            <span class="left">Mesa {{ order.table.number }}</span>
+            <div class="acts">
+                <button type="button" class="btn" onclick="closeCancelModal()">No, volver</button>
+                <form method="post" action="{% url 'orders:update_status' order.pk %}" style="display:inline">
+                    {% csrf_token %}<input type="hidden" name="status" value="cancelled">
+                    <button type="submit" class="btn danger">Sí, cancelar orden</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function openCancelModal(){ document.getElementById('cancel-backdrop').classList.add('show'); }
+function closeCancelModal(){ document.getElementById('cancel-backdrop').classList.remove('show'); }
+(function(){
+    var bd = document.getElementById('cancel-backdrop');
+    if (!bd) return;
+    bd.addEventListener('click', function(e){ if (e.target === bd) closeCancelModal(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeCancelModal(); });
+})();
+</script>
+{% endif %}
+
+{# Selector de platillos: categorías + tarjetas + buscador #}
 <script>
 (function(){
+    var box = document.getElementById('add-box');
+    if (!box) return;
     var search = document.getElementById('item-search');
-    if (!search) return;
-    var select = document.getElementById('menu-item-select');
-    search.addEventListener('input', function() {
-        var q = this.value.toLowerCase().trim();
-        var options = select.querySelectorAll('option[data-search]');
-        options.forEach(function(opt) {
-            opt.style.display = (!q || opt.dataset.search.includes(q)) ? '' : 'none';
+    var cats   = box.querySelectorAll('.pk-cat');
+    var cards  = box.querySelectorAll('.pk-card');
+    var hidden = document.getElementById('menu-item-input');
+    var submit = document.getElementById('add-submit');
+    var label  = document.getElementById('add-submit-label');
+    var activeCat = 'all';
+
+    function applyFilter(){
+        var q = (search && search.value || '').toLowerCase().trim();
+        cards.forEach(function(c){
+            var matchCat = (activeCat === 'all' || c.dataset.cat === activeCat);
+            var matchQ   = (!q || c.dataset.search.indexOf(q) !== -1);
+            // Al buscar, ignora la categoría activa (busca en todo)
+            c.style.display = (q ? matchQ : matchCat) ? '' : 'none';
         });
-        if (q) select.size = Math.min(options.length, 8);
-        else select.size = 1;
+    }
+
+    cats.forEach(function(ch){
+        ch.addEventListener('click', function(){
+            cats.forEach(function(x){ x.classList.remove('on'); });
+            ch.classList.add('on');
+            activeCat = ch.dataset.cat;
+            if (search) search.value = '';
+            applyFilter();
+        });
     });
-    search.addEventListener('blur', function() {
-        setTimeout(function() { select.size = 1; }, 200);
+
+    cards.forEach(function(cd){
+        cd.addEventListener('click', function(){
+            cards.forEach(function(x){ x.classList.remove('sel'); });
+            cd.classList.add('sel');
+            hidden.value = cd.dataset.id;
+            submit.disabled = false;
+            label.textContent = 'Agregar ' + cd.dataset.name;
+        });
     });
+
+    if (search) search.addEventListener('input', applyFilter);
+    applyFilter();
 })();
 </script>
 

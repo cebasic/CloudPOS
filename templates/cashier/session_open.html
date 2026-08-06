@@ -1,5 +1,5 @@
 {% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
-{% block title %}Abrir caja — Cocos Barrancos{% endblock %}
+{% block title %}Abrir caja — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Abrir caja{% endblock %}
 {% block crumb_section %}Gestión{% endblock %}
 

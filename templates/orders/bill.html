@@ -1,0 +1,89 @@
+{% load humanize %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuenta · Mesa {{ order.table.number }} · #{{ order.pk }}</title>
+<style>
+  :root{ --w: {% if ticket.paper_width == '58' %}220px{% else %}300px{% endif %}; }
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e5dd;font-family:"Geist Mono",ui-monospace,Menlo,monospace;color:#1c1a17;
+       display:flex;flex-direction:column;align-items:center;padding:24px 12px;font-size:12px;line-height:1.55}
+  .ticket{width:var(--w);background:#fff;padding:20px 18px 26px;box-shadow:0 10px 30px -12px rgba(0,0,0,.3)}
+  .center{text-align:center}
+  .logo{width:56px;height:56px;margin:0 auto 8px;object-fit:contain;display:block}
+  .name{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;font-size:17px;letter-spacing:-.02em}
+  .tag{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8278;margin-top:3px}
+  .meta{font-size:10.5px;color:#5a554e;margin-top:3px}
+  .badge{display:inline-block;margin-top:10px;padding:3px 12px;border:1px dashed #8a8278;border-radius:6px;
+         font-weight:700;letter-spacing:.18em;font-size:11px;text-transform:uppercase}
+  .rule{border:0;border-top:1px dashed #c9c1b3;margin:12px 0}
+  .li{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+  .li .q{color:#8a8278}
+  .li .nm{flex:1;padding-left:6px}
+  .row{display:flex;justify-content:space-between;padding:2px 0}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding-top:8px;border-top:1px solid #1c1a17}
+  .tot .l{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:11px}
+  .tot .v{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;font-size:22px}
+  .tips{font-size:10.5px;color:#5a554e;margin-top:8px}
+  .foot{text-align:center;font-size:11px;margin-top:12px}
+  .stamp{text-align:center;font-size:9px;color:#b6ae9f;letter-spacing:.18em;text-transform:uppercase;margin-top:10px}
+  .actions{margin-top:18px;display:flex;gap:10px}
+  .actions button,.actions a{font:inherit;font-family:ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:13px;
+       padding:10px 16px;border-radius:10px;border:1px solid #cbb;cursor:pointer;text-decoration:none;color:#1c1a17;background:#fff}
+  .actions .pri{background:#C8553D;color:#fff;border-color:#C8553D}
+  @media print{
+    body{background:#fff;padding:0}
+    .ticket{box-shadow:none;width:auto}
+    .no-print{display:none !important}
+    @page{margin:6mm}
+  }
+</style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="center">
+      {% if ticket.show_logo and ticket.logo %}<img class="logo" src="{{ ticket.logo.url }}" alt="logo">{% endif %}
+      <div class="name">{{ ticket.business_name|default:business.name|default:"Cocos Barrancos" }}</div>
+      {% if ticket.tagline %}<div class="tag">{{ ticket.tagline }}</div>{% endif %}
+      {% if ticket.show_address and ticket.address %}<div class="meta">{{ ticket.address }}</div>{% endif %}
+      {% if ticket.show_phone and ticket.phone %}<div class="meta">Tel. {{ ticket.phone }}</div>{% endif %}
+      {% if ticket.show_tax_id and ticket.tax_id %}<div class="meta">RFC: {{ ticket.tax_id }}</div>{% endif %}
+      <div class="badge">Cuenta</div>
+    </div>
+
+    <hr class="rule">
+    <div class="row"><span>Cuenta #{{ order.pk }}</span><span>Mesa {{ order.table.number }}</span></div>
+    <div class="meta">{{ order.created_at|date:"d M Y · H:i" }} · {{ order.waiter.get_full_name|default:order.waiter.username }}</div>
+
+    <hr class="rule">
+    {% for item in order.items.all %}
+    <div class="li"><span><span class="q">{{ item.quantity }}×</span><span class="nm">{{ item.menu_item.name }}</span></span><span>${{ item.subtotal }}</span></div>
+    {% empty %}
+    <div class="meta center">Sin platillos.</div>
+    {% endfor %}
+
+    <hr class="rule">
+    <div class="row"><span>Subtotal</span><span>${{ order.subtotal }}</span></div>
+    {% if order.discount_amount %}
+    <div class="row"><span>Descuento{% if order.discount_reason %} · {{ order.discount_reason }}{% endif %}</span><span>−${{ order.discount_amount }}</span></div>
+    {% endif %}
+    <div class="tot"><span class="l">Total</span><span class="v">${{ order.total }}</span></div>
+
+    <div class="tips">Propina sugerida — 10%: ${% widthratio order.total 100 10 %} · 15%: ${% widthratio order.total 100 15 %} · 20%: ${% widthratio order.total 100 20 %}</div>
+
+    <hr class="rule">
+    {% if ticket.footer_message %}<div class="foot">{{ ticket.footer_message }}</div>{% endif %}
+    <div class="stamp">No es comprobante de pago</div>
+  </div>
+
+  <div class="actions no-print">
+    <button class="pri" onclick="window.print()">🖨️ Imprimir</button>
+    <a href="javascript:window.close()">Cerrar</a>
+  </div>
+
+  <script>
+    window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 350); });
+  </script>
+</body>
+</html>

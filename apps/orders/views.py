@@ -45,6 +45,48 @@ def _notify_waiter(order, message=None):
         pass
 
 
+def _notify_cashier_bill(order):
+    """Avisa a la(s) estación(es) de caja que una mesa pidió su cuenta."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                "cashier_station",
+                {
+                    "type": "bill.request",
+                    "order_id": order.pk,
+                    "table_number": order.table.number,
+                    "message": f"Mesa {order.table.number} solicitó su cuenta",
+                },
+            )
+    except Exception:
+        pass
+
+
+@login_required
+@role_required("admin", "manager", "waiter", "cashier")
+def order_request_bill(request, pk):
+    """El mesero pide imprimir la cuenta → notifica a la estación de caja."""
+    order = get_object_or_404(Order.objects.select_related("table"), pk=pk)
+    if order.status in ("closed", "cancelled"):
+        messages.error(request, "Esta orden ya no está activa.")
+        return redirect("orders:detail", pk=pk)
+    _notify_cashier_bill(order)
+    messages.success(request, f"Cuenta de la mesa {order.table.number} enviada a caja.")
+    return redirect("orders:detail", pk=pk)
+
+
+@login_required
+@role_required("admin", "manager", "waiter", "cashier")
+def order_bill(request, pk):
+    """Pre-cuenta imprimible (antes de pagar). La caja la abre e imprime."""
+    order = get_object_or_404(
+        Order.objects.select_related("table", "waiter").prefetch_related("items__menu_item"),
+        pk=pk,
+    )
+    return render(request, "orders/bill.html", {"order": order})
+
+
 @login_required
 @role_required("admin", "manager", "waiter", "cashier")
 def dashboard(request):

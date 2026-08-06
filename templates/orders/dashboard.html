@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block title %}Restaurant — Cocos Barrancos{% endblock %}
+{% block title %}Restaurant — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Restaurant{% endblock %}
 
 {% block content %}
