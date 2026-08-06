@@ -1,147 +1,133 @@
 {% extends "base.html" %}
-{% block title %}Reservaciones — CocosBarrancos{% endblock %}
+{% block title %}Reservaciones — Cocos Barrancos{% endblock %}
 {% block page_title %}Reservaciones{% endblock %}
 
 {% block content %}
-{# Date selector #}
-<div class="mb-5 flex flex-col sm:flex-row sm:items-center gap-3">
-    <form method="get" class="flex items-center gap-2">
-        <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}"
-               class="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent">
-        <button type="submit"
-                class="rounded-lg bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-600 transition-colors">
-            Ir
-        </button>
-        {% if selected_date != today %}
-        <a href="{% url 'reservations:list' %}"
-           class="text-xs text-brand-400 hover:text-brand-300 transition-colors">Hoy</a>
-        {% endif %}
-    </form>
-    <div class="sm:ml-auto">
-        <a href="{% url 'reservations:create' %}?date={{ selected_date|date:'Y-m-d' }}"
-           class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 transition-colors">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-            </svg>
-            Nueva Reservación
+<div class="view-fade">
+
+<div class="page-head">
+    <div>
+        <h1>Reservaciones</h1>
+        <p class="sub">
+            {% if selected_date == today %}Hoy · {% endif %}{{ selected_date|date:"l j \d\e F, Y" }} · {{ reservations|length }} reservación{{ reservations|length|pluralize:"es" }}
+        </p>
+    </div>
+    <div class="right">
+        <form method="get" class="filters">
+            <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="input" style="width:auto">
+            <button type="submit" class="btn">Ir</button>
+            {% if selected_date != today %}
+            <a href="{% url 'reservations:list' %}" class="btn ghost sm">Hoy</a>
+            {% endif %}
+        </form>
+        <a href="{% url 'reservations:create' %}?date={{ selected_date|date:'Y-m-d' }}" class="btn primary"
+           hx-get="{% url 'reservations:create' %}?date={{ selected_date|date:'Y-m-d' }}" hx-target="#modal-root" hx-swap="innerHTML">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+            Reservar
         </a>
     </div>
 </div>
 
-{# Today's reservations #}
-<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden mb-6">
-    <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
-        <div>
-            <h2 class="text-sm font-semibold text-slate-200">
-                {% if selected_date == today %}Reservaciones de hoy{% else %}{{ selected_date|date:"d \d\e F, Y" }}{% endif %}
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">{{ reservations|length }} reservación{{ reservations|length|pluralize:"es" }}</p>
+<div class="row">
+    {# Reservaciones del día #}
+    <div class="card" style="align-self:start">
+        <div class="card-head">
+            <h2>{% if selected_date == today %}Reservas de <em>hoy</em>{% else %}Reservas · <em>{{ selected_date|date:"d M" }}</em>{% endif %}</h2>
+            <span class="meta">{{ reservations|length }} en la fecha</span>
         </div>
-    </div>
-
-    {% if reservations %}
-    <div class="divide-y divide-slate-700">
-        {% for r in reservations %}
-        <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="h-10 w-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-                    <svg class="h-5 w-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
-                    </svg>
+        {% if reservations %}
+        <div class="list">
+            {% for r in reservations %}
+            <div class="item" style="grid-template-columns: 52px 1fr auto">
+                <div class="num">{{ r.time|time:"H:i" }}</div>
+                <div style="min-width:0">
+                    <div class="ttl">{{ r.customer_name }}</div>
+                    <div class="sub">
+                        {{ r.party_size }} persona{{ r.party_size|pluralize }}{% if r.table %} · Mesa {{ r.table.number }}{% endif %}{% if r.customer_phone %} · {{ r.customer_phone }}{% endif %}
+                    </div>
+                    {% if r.notes %}<div class="sub" style="font-style:normal">{{ r.notes|truncatechars:60 }}</div>{% endif %}
                 </div>
-                <div class="min-w-0">
-                    <p class="text-sm font-semibold text-white truncate">{{ r.customer_name }}</p>
-                    <p class="text-xs text-slate-400">
-                        {{ r.time|time:"H:i" }} &bull; {{ r.party_size }} persona{{ r.party_size|pluralize:"s" }}
-                        {% if r.table %}&bull; {{ r.table }}{% endif %}
-                        {% if r.customer_phone %}&bull; {{ r.customer_phone }}{% endif %}
-                    </p>
-                    {% if r.notes %}
-                    <p class="text-xs text-slate-500 mt-0.5 truncate">{{ r.notes }}</p>
+                <div class="right" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+                    {% if r.status == 'pending' %}<span class="chip"><i></i> Pendiente</span>
+                    {% elif r.status == 'confirmed' %}<span class="chip gold"><i></i> Confirmada</span>
+                    {% elif r.status == 'seated' %}<span class="chip sage"><i></i> Sentada</span>
+                    {% elif r.status == 'cancelled' %}<span class="chip berry"><i></i> Cancelada</span>
+                    {% elif r.status == 'no_show' %}<span class="chip ghost"><i></i> No se presentó</span>
                     {% endif %}
-                </div>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-                {% if r.status == 'pending' %}
-                <span class="inline-flex items-center rounded-md bg-yellow-500/10 px-2 py-1 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/20">Pendiente</span>
-                {% elif r.status == 'confirmed' %}
-                <span class="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">Confirmada</span>
-                {% elif r.status == 'seated' %}
-                <span class="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">Sentada</span>
-                {% elif r.status == 'cancelled' %}
-                <span class="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-500/20">Cancelada</span>
-                {% elif r.status == 'no_show' %}
-                <span class="inline-flex items-center rounded-md bg-slate-500/10 px-2 py-1 text-xs font-medium text-slate-400 ring-1 ring-inset ring-slate-500/20">No se presentó</span>
-                {% endif %}
 
-                <a href="{% url 'reservations:edit' r.pk %}"
-                   class="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 transition-colors">
-                    Editar
-                </a>
+                    <a href="{% url 'reservations:edit' r.pk %}" class="icbtn" title="Editar"
+                       hx-get="{% url 'reservations:edit' r.pk %}" hx-target="#modal-root" hx-swap="innerHTML">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20h4l10-10-4-4L4 16v4Z"/></svg>
+                    </a>
 
-                {# Quick status change #}
-                <div x-data="{ open: false }" class="relative">
-                    <button @click="open = !open"
-                            class="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-1">
-                        Estado
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
-                        </svg>
-                    </button>
-                    <div x-show="open" @click.outside="open = false"
-                         class="absolute right-0 mt-1 w-44 rounded-xl border border-slate-600 bg-slate-800 shadow-xl z-20 overflow-hidden">
-                        {% for value, label in r.Status.choices %}
-                        {% if value != r.status %}
-                        <form method="post" action="{% url 'reservations:status' r.pk %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="status" value="{{ value }}">
-                            <button type="submit"
-                                    class="w-full px-4 py-2.5 text-left text-xs text-slate-300 hover:bg-slate-700 transition-colors">
-                                {{ label }}
-                            </button>
-                        </form>
-                        {% endif %}
-                        {% endfor %}
+                    {# Cambio rápido de estado #}
+                    <div x-data="{ open: false }" style="position:relative">
+                        <button @click="open = !open" class="btn sm">
+                            Estado
+                            <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+                        </button>
+                        <div x-show="open" x-cloak @click.outside="open = false"
+                             style="position:absolute;right:0;margin-top:6px;width:180px;background:#FFFDF9;border:1px solid var(--hairline);border-radius:12px;box-shadow:var(--shadow-lg);z-index:30;overflow:hidden">
+                            {% for value, label in r.Status.choices %}
+                            {% if value != r.status %}
+                            <form method="post" action="{% url 'reservations:status' r.pk %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="{{ value }}">
+                                <button type="submit" style="width:100%;text-align:left;padding:10px 14px;font-size:12.5px;font-weight:600;color:var(--ink-2)"
+                                        onmouseover="this.style.background='var(--paper)'" onmouseout="this.style.background=''">
+                                    {{ label }}
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        {% else %}
+        <div style="padding:48px 20px;text-align:center">
+            <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="var(--ink-4)" style="margin:0 auto 10px;display:block">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18"/><rect x="2" y="4" width="20" height="16" rx="2"/>
+            </svg>
+            <p class="muted" style="font-size:13px">No hay reservaciones para esta fecha.</p>
+            <a href="{% url 'reservations:create' %}?date={{ selected_date|date:'Y-m-d' }}" class="btn primary sm" style="margin-top:12px"
+               hx-get="{% url 'reservations:create' %}?date={{ selected_date|date:'Y-m-d' }}" hx-target="#modal-root" hx-swap="innerHTML">
+                Crear una
+            </a>
+        </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="px-5 py-12 text-center">
-        <svg class="mx-auto h-10 w-10 text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
-        </svg>
-        <p class="text-sm text-slate-500">No hay reservaciones para esta fecha.</p>
-        <a href="{% url 'reservations:create' %}?date={{ selected_date|date:'Y-m-d' }}"
-           class="mt-3 inline-block text-xs text-brand-400 hover:text-brand-300 transition-colors">Crear una</a>
+
+    {# Próximas #}
+    <div class="card" style="align-self:start">
+        <div class="card-head">
+            <h2>Próximas <em>reservas</em></h2>
+            <span class="meta">pendientes · confirmadas</span>
+        </div>
+        <div class="list">
+            {% for r in upcoming %}
+            <div class="item" style="grid-template-columns: 52px 1fr auto">
+                <div class="num">{{ r.time|time:"H:i" }}</div>
+                <div style="min-width:0">
+                    <div class="ttl">{{ r.customer_name }}</div>
+                    <div class="sub">{{ r.date|date:"d M" }} · {{ r.party_size }}p{% if r.table %} · Mesa {{ r.table.number }}{% endif %}</div>
+                </div>
+                <div class="right">
+                    {% if r.status == 'pending' %}
+                    <span class="chip"><i></i> Pendiente</span>
+                    {% else %}
+                    <span class="chip gold"><i></i> Confirmada</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p style="padding:28px 18px;text-align:center" class="muted">Sin próximas reservaciones.</p>
+            {% endfor %}
+        </div>
     </div>
-    {% endif %}
 </div>
 
-{# Upcoming reservations sidebar card #}
-{% if upcoming %}
-<div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-    <div class="px-5 py-4 border-b border-slate-700">
-        <h2 class="text-sm font-semibold text-slate-200">Próximas reservaciones</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Pendientes y confirmadas</p>
-    </div>
-    <div class="divide-y divide-slate-700">
-        {% for r in upcoming %}
-        <div class="px-5 py-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-                <p class="text-sm font-medium text-white truncate">{{ r.customer_name }}</p>
-                <p class="text-xs text-slate-400">{{ r.date|date:"d M" }} {{ r.time|time:"H:i" }} &bull; {{ r.party_size }}p{% if r.table %} &bull; {{ r.table }}{% endif %}</p>
-            </div>
-            {% if r.status == 'pending' %}
-            <span class="shrink-0 inline-flex items-center rounded-md bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-400">Pendiente</span>
-            {% else %}
-            <span class="shrink-0 inline-flex items-center rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-400">Confirmada</span>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
 </div>
-{% endif %}
 {% endblock %}

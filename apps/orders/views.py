@@ -55,6 +55,9 @@ def dashboard(request):
     return render(request, "orders/dashboard.html", {
         "active_orders": active_orders,
         "tables": tables,
+        "occupied_count": tables.filter(status="occupied").count(),
+        "available_count": tables.filter(status="available").count(),
+        "ready_count": active_orders.filter(status="ready").count(),
         "cash_session_open": _cash_session_open(),
     })
 

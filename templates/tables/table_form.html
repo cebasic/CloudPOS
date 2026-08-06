@@ -1,22 +1,42 @@
-{% extends "base.html" %}
-{% block title %}{{ title }} - CocosBarrancos{% endblock %}
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% block title %}{{ title }} — Cocos Barrancos{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 
-{% block content %}
-<div class="max-w-lg">
-    <form method="post" class="space-y-5 bg-slate-800 rounded-xl border border-slate-700 p-6">
-        {% csrf_token %}
-        {% for field in form %}
-        <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-300 mb-1.5">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}<p class="mt-1 text-sm text-red-400">{{ field.errors.0 }}</p>{% endif %}
+{% block form_title %}{{ title }}{% endblock %}
+{% block form_subtitle %}{% if form.instance.pk %}Edita los datos de la mesa{% else %}Agrega una mesa al Restaurant{% endif %}{% endblock %}
+
+{% block form_body %}
+<div class="form-grid">
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.number.id_for_label }}">Número</label>
+            {{ form.number }}
+            {% if form.number.errors %}<span class="err">{{ form.number.errors.0 }}</span>{% endif %}
         </div>
-        {% endfor %}
-        <div class="flex items-center gap-3 pt-4 border-t border-slate-700">
-            <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors">Guardar</button>
-            <a href="{% url 'tables:list' %}" class="text-sm text-slate-400 hover:text-slate-200">Cancelar</a>
+        <div class="fg">
+            <label for="{{ form.capacity.id_for_label }}">Capacidad</label>
+            <div class="stepper">
+                <button type="button" data-step="-1">−</button>
+                <input type="number" name="capacity" min="1" value="{{ form.capacity.value|default:4 }}" id="{{ form.capacity.id_for_label }}">
+                <button type="button" data-step="1">+</button>
+            </div>
+            {% if form.capacity.errors %}<span class="err">{{ form.capacity.errors.0 }}</span>{% endif %}
         </div>
-    </form>
+    </div>
+    <div class="fg">
+        <label>Estado</label>
+        <div class="chip-pick" data-pick>
+            {% for value, label in form.fields.status.choices %}
+            <label class="{% if form.status.value == value or not form.status.value and forloop.first %}on{% endif %}">
+                <input type="radio" name="status" value="{{ value }}" {% if form.status.value == value or not form.status.value and forloop.first %}checked{% endif %}>
+                {{ label }}
+            </label>
+            {% endfor %}
+        </div>
+        {% if form.status.errors %}<span class="err">{{ form.status.errors.0 }}</span>{% endif %}
+    </div>
 </div>
 {% endblock %}
+
+{% block form_note %}Aparece en el mapa del Restaurant inmediatamente{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">{% if form.instance.pk %}Guardar cambios{% else %}Crear mesa{% endif %}</button>{% endblock %}

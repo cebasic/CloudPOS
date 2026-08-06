@@ -1,109 +1,57 @@
-{% extends "base.html" %}
-{% block title %}{{ title }} — CocosBarrancos{% endblock %}
-{% block page_title %}{{ title }}{% endblock %}
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% block title %}{{ title|default:"Nueva reservación" }} — Cocos Barrancos{% endblock %}
+{% block page_title %}{{ title|default:"Nueva reservación" }}{% endblock %}
 
-{% block content %}
-<div class="max-w-xl">
-    <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-700 flex items-center gap-3">
-            <div class="h-9 w-9 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008Z"/>
-                </svg>
-            </div>
-            <div>
-                <h2 class="text-sm font-semibold text-slate-200">{{ title }}</h2>
-                <p class="text-xs text-slate-500">Completa los datos del cliente y la reservación</p>
-            </div>
+{% block form_title %}{{ title|default:"Nueva reservación" }}{% endblock %}
+{% block form_subtitle %}Registra una reserva con asignación de mesa{% endblock %}
+
+{% block form_body %}
+<div class="form-grid">
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.customer_name.id_for_label }}">Nombre del cliente</label>
+            {{ form.customer_name }}
+            {% if form.customer_name.errors %}<span class="err">{{ form.customer_name.errors.0 }}</span>{% endif %}
         </div>
-
-        <form method="post" class="px-6 py-5 space-y-4">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="sm:col-span-2">
-                    <label for="{{ form.customer_name.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.customer_name.label }} <span class="text-red-400">*</span>
-                    </label>
-                    {{ form.customer_name }}
-                    {% if form.customer_name.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.customer_name.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.customer_phone.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.customer_phone.label }}
-                    </label>
-                    {{ form.customer_phone }}
-                    {% if form.customer_phone.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.customer_phone.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.party_size.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.party_size.label }} <span class="text-red-400">*</span>
-                    </label>
-                    {{ form.party_size }}
-                    {% if form.party_size.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.party_size.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.date.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.date.label }} <span class="text-red-400">*</span>
-                    </label>
-                    {{ form.date }}
-                    {% if form.date.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.date.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.time.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.time.label }} <span class="text-red-400">*</span>
-                    </label>
-                    {{ form.time }}
-                    {% if form.time.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.time.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label for="{{ form.table.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.table.label }}
-                        <span class="text-slate-500 font-normal">(opcional)</span>
-                    </label>
-                    {{ form.table }}
-                    {% if form.table.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.table.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label for="{{ form.notes.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1.5">
-                        {{ form.notes.label }}
-                    </label>
-                    {{ form.notes }}
-                    {% if form.notes.errors %}
-                    <p class="mt-1 text-xs text-red-400">{{ form.notes.errors.0 }}</p>
-                    {% endif %}
-                </div>
+        <div class="fg">
+            <label for="{{ form.customer_phone.id_for_label }}">Teléfono</label>
+            {{ form.customer_phone }}
+            {% if form.customer_phone.errors %}<span class="err">{{ form.customer_phone.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="form-grid cols-3">
+        <div class="fg">
+            <label for="{{ form.date.id_for_label }}">Fecha</label>
+            {{ form.date }}
+            {% if form.date.errors %}<span class="err">{{ form.date.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
+            <label for="{{ form.time.id_for_label }}">Hora</label>
+            {{ form.time }}
+            {% if form.time.errors %}<span class="err">{{ form.time.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
+            <label for="{{ form.party_size.id_for_label }}">Personas</label>
+            <div class="stepper">
+                <button type="button" data-step="-1">−</button>
+                <input type="number" name="party_size" min="1" max="50" value="{{ form.party_size.value|default:2 }}" id="{{ form.party_size.id_for_label }}">
+                <button type="button" data-step="1">+</button>
             </div>
-
-            <div class="flex items-center gap-3 pt-3 border-t border-slate-700">
-                <button type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700 transition-colors">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    Guardar
-                </button>
-                <a href="{% url 'reservations:list' %}" class="text-sm text-slate-400 hover:text-slate-200 transition-colors">Cancelar</a>
-            </div>
-        </form>
+            {% if form.party_size.errors %}<span class="err">{{ form.party_size.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
+    <div class="fg">
+        <label for="{{ form.table.id_for_label }}">Mesa asignada <span style="font-weight:500;text-transform:none;color:var(--ink-3)">(opcional)</span></label>
+        {{ form.table }}
+        {% if form.table.errors %}<span class="err">{{ form.table.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="fg">
+        <label for="{{ form.notes.id_for_label }}">Notas</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<span class="err">{{ form.notes.errors.0 }}</span>{% endif %}
     </div>
 </div>
 {% endblock %}
+
+{% block form_note %}Confirma los datos con el cliente{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">{% if form.instance.pk %}Guardar cambios{% else %}Confirmar reserva{% endif %}</button>{% endblock %}

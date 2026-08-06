@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from .models import User
 
 
-_INPUT = "block w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+_INPUT = "input"
 
 
 class LoginForm(AuthenticationForm):
