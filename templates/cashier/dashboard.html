@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Caja — Cocos Barrancos{% endblock %}
+{% block title %}Caja — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block crumb_section %}Gestión{% endblock %}
 {% block page_title %}Caja{% endblock %}
 

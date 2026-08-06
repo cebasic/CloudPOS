@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cocina — Cocos Barrancos</title>
+    <title>Cocina — {{ business.name|default:"Cocos Barrancos" }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -121,8 +121,10 @@
 {# Barra superior #}
 <header class="k-top">
     <div class="k-brand">
-        <div class="mark">C</div>
-        <div class="t">Pantalla de cocina<small>Cocos Barrancos</small></div>
+        <div class="mark" style="overflow:hidden">
+            {% if business.logo %}<img src="{{ business.logo.url }}" alt="{{ business.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ business.name|default:"Cocos Barrancos"|slice:":1"|upper }}{% endif %}
+        </div>
+        <div class="t">Pantalla de cocina<small>{{ business.name|default:"Cocos Barrancos" }}{% if business.branch %} · Sucursal {{ business.branch }}{% endif %}</small></div>
     </div>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
         <span class="live off" id="ws-live"><i></i><span id="ws-label">Conectando…</span></span>

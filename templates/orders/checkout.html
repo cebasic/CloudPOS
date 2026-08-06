@@ -1,10 +1,37 @@
 {% extends "base.html" %}
 {% load l10n %}
-{% block title %}Cobrar orden #{{ order.pk }} — Cocos Barrancos{% endblock %}
+{% block title %}Cobrar orden #{{ order.pk }} — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Cobrar · Mesa {{ order.table.number }}{% endblock %}
 
 {% block content %}
-<div class="view-fade" style="max-width:680px;margin:0 auto">
+<style>
+/* Selector de método de pago · tarjetas delineadas seleccionables */
+.pay-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.pay-opt{
+  cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:84px; padding:14px 10px; text-align:center;
+  border:1.5px solid var(--hairline-2); border-radius:14px; background:#fff;
+  box-shadow:var(--shadow-sm);
+  transition:border-color .15s, background .15s, box-shadow .15s, transform .12s;
+}
+.pay-opt:hover{border-color:var(--ink-3); transform:translateY(-1px); box-shadow:var(--shadow)}
+.pay-opt .ic{font-size:22px; line-height:1}
+.pay-opt .lb{font-weight:700; font-size:13px; margin-top:6px; color:var(--ink-2)}
+.pay-opt.on{border-color:var(--terracotta); background:#FBEFE9; box-shadow:0 0 0 3px var(--terracotta-glow)}
+.pay-opt.on .lb{color:var(--terracotta-2)}
+
+/* Layout: vertical = apilado (Resumen arriba, Pago abajo).
+   Horizontal/ancho = 2 columnas (Resumen izquierda · Método de pago derecha). */
+.co-wrap{max-width:680px; margin:0 auto}
+.co-grid{display:grid; grid-template-columns:1fr; gap:16px; min-width:0}
+.co-grid > *{min-width:0}
+@media (min-width:820px){
+  .co-wrap{max-width:1040px}
+  .co-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:20px; align-items:start}
+  .co-summary{position:sticky; top:64px}
+}
+</style>
+<div class="view-fade co-wrap">
 
 <div class="page-head">
     <div>
@@ -13,8 +40,10 @@
     </div>
 </div>
 
+<div class="co-grid">
+
 {# Resumen de la orden #}
-<div class="summary" style="margin-bottom:16px">
+<div class="summary co-summary">
     <h3>Resumen de la orden</h3>
     <p class="sub">{{ order.items.count }} item{{ order.items.count|pluralize }}</p>
     {% for item in order.items.all %}
@@ -52,24 +81,21 @@
         {% endif %}
 
         {# Selector de método #}
-        <div class="form-grid cols-3">
-            <label style="cursor:pointer;border-radius:14px;border:1.5px solid;padding:14px;text-align:center;transition:all .15s"
-                   :style='method === "cash" ? "border-color:var(--terracotta);background:#FBEFE9" : "border-color:var(--hairline);background:#fff"'>
+        <div class="pay-grid">
+            <label class="pay-opt" :class="method === 'cash' && 'on'">
                 <input type="radio" name="method" value="cash" style="display:none" x-model="method">
-                <div style="font-size:20px">💵</div>
-                <div style="font-weight:700;font-size:13px;margin-top:4px" :style='method === "cash" && "color:var(--terracotta-2)"'>Efectivo</div>
+                <div class="ic">💵</div>
+                <div class="lb">Efectivo</div>
             </label>
-            <label style="cursor:pointer;border-radius:14px;border:1.5px solid;padding:14px;text-align:center;transition:all .15s"
-                   :style='method === "card" ? "border-color:var(--terracotta);background:#FBEFE9" : "border-color:var(--hairline);background:#fff"'>
+            <label class="pay-opt" :class="method === 'card' && 'on'">
                 <input type="radio" name="method" value="card" style="display:none" x-model="method">
-                <div style="font-size:20px">💳</div>
-                <div style="font-weight:700;font-size:13px;margin-top:4px" :style='method === "card" && "color:var(--terracotta-2)"'>Tarjeta</div>
+                <div class="ic">💳</div>
+                <div class="lb">Tarjeta</div>
             </label>
-            <label style="cursor:pointer;border-radius:14px;border:1.5px solid;padding:14px;text-align:center;transition:all .15s"
-                   :style='method === "mixed" ? "border-color:var(--terracotta);background:#FBEFE9" : "border-color:var(--hairline);background:#fff"'>
+            <label class="pay-opt" :class="method === 'mixed' && 'on'">
                 <input type="radio" name="method" value="mixed" style="display:none" x-model="method">
-                <div style="font-size:20px">🔀</div>
-                <div style="font-weight:700;font-size:13px;margin-top:4px" :style='method === "mixed" && "color:var(--terracotta-2)"'>Mixto</div>
+                <div class="ic">🔀</div>
+                <div class="lb">Mixto</div>
             </label>
         </div>
 
@@ -158,6 +184,7 @@
         </div>
     </form>
 </div>
+</div>{# /co-grid #}
 
 <script>
 document.addEventListener('alpine:init', () => {

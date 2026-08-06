@@ -1,5 +1,5 @@
 {% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
-{% block title %}Registrar gasto — Cocos Barrancos{% endblock %}
+{% block title %}Registrar gasto — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}Registrar gasto{% endblock %}
 {% block crumb_section %}Gestión{% endblock %}
 

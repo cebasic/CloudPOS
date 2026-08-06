@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Cocos Barrancos{% endblock %}</title>
+    <title>{% block title %}{{ business.name|default:"Cocos Barrancos" }}{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -887,6 +887,66 @@ hr.hair{border:0;border-top:1px solid var(--hairline);margin:14px 0}
 .notif-pop .empty{padding:14px 16px;font-size:13px;color:var(--ink-3)}
 .view-fade{animation: fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ============================================================
+   Capa táctil tablet/móvil (meseros en tablets de 7"+)
+   Compacta KPIs, mapa y contenedores para que no se vean enormes
+   y sean cómodos al tacto. Aplica vertical y horizontal.
+   ============================================================ */
+@media (max-width: 1024px){
+  /* Densidad general */
+  .main{padding: 4px 16px 28px}
+  .page-head{margin: 4px 0 16px}
+  .card-body{padding:14px}
+  .card-head{padding:12px 14px}
+
+  /* KPIs más compactos · hero a lo ancho y los 3 secundarios en una fila */
+  .kpis{grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px}
+  .kpi.hero{grid-column:1 / -1}
+  .kpi{padding:13px 14px; border-radius:14px}
+  .kpi .label{font-size:10px}
+  .kpi .value{font-size:30px; margin-top:6px}
+  .kpi .value .small{font-size:26px}
+  .kpi .value .unit{font-size:12px}
+  .kpi .delta{font-size:11px; margin-top:6px}
+  .kpi .spark{display:none}
+
+  /* Mapa del restaurant: tiles más chicos, caben más por fila */
+  .floor{padding:12px}
+  .tables-grid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px}
+  .ftable{min-height:84px; padding:10px; border-radius:12px}
+  .ftable .n{font-size:18px}
+  .ftable .cap{font-size:10px}
+
+  /* Rail de órdenes activas */
+  .rail{gap:10px}
+  .order{padding:14px; border-radius:14px}
+}
+
+@media (max-width: 640px){
+  /* En vertical: hero a lo ancho, los 3 secundarios en una sola fila */
+  .kpis{gap:8px}
+  .kpi{padding:11px 10px}
+  .kpi .value{font-size:24px}
+  .kpi .value .small{font-size:22px}
+  .kpi .value .unit{display:block; font-size:11px; margin-left:0}
+
+  .page-head h1{font-size:25px}
+
+  /* Mapa aún más denso en pantallas angostas */
+  .tables-grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px}
+  .ftable{min-height:74px; padding:8px}
+  .ftable .n{font-size:17px}
+}
+
+/* En dispositivos táctiles en horizontal (tablets de meseros): ocultar la
+   sidebar fija y usar el cajón con hamburguesa, para dar todo el ancho al
+   contenido. No afecta a escritorio con mouse (pointer:fine). */
+@media (pointer: coarse) and (orientation: landscape){
+  .app{grid-template-columns:1fr}
+  .sidebar.desktop{display:none}
+  .menu-toggle{display:grid !important}
+}
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -899,7 +959,7 @@ hr.hair{border:0;border-top:1px solid var(--hairline);margin:14px 0}
 <div class="app">
 
     {# Mobile sidebar overlay #}
-    <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50 lg:hidden" role="dialog" style="position:fixed;inset:0;z-index:60">
+    <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50" role="dialog" style="position:fixed;inset:0;z-index:60">
         <div style="position:fixed;inset:0;background:rgba(27,24,21,.5);backdrop-filter:blur(2px)" @click="sidebarOpen = false"
              x-transition:enter="transition-opacity duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
              x-transition:leave="transition-opacity duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"></div>
@@ -918,7 +978,7 @@ hr.hair{border:0;border-top:1px solid var(--hairline);margin:14px 0}
     {# Main area #}
     <section style="min-width:0">
         <header class="topbar">
-            <button type="button" class="iconbtn lg:hidden" @click="sidebarOpen = true" title="Menú">
+            <button type="button" class="iconbtn lg:hidden menu-toggle" @click="sidebarOpen = true" title="Menú">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
                 </svg>
@@ -927,6 +987,8 @@ hr.hair{border:0;border-top:1px solid var(--hairline);margin:14px 0}
                 <span>{% block crumb_section %}Operación{% endblock %}</span><span class="sep">›</span><strong>{% block page_title %}{% endblock %}</strong>
             </div>
             <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+                {# Acciones específicas de la página (a la izquierda de la campana) #}
+                {% block topbar_actions %}{% endblock %}
                 {# Notification bell #}
                 {% if user.role == 'waiter' or user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}
                 <div class="relative" id="notif-bell" x-data="{ count: 0 }" style="position:relative">
@@ -993,16 +1055,23 @@ hr.hair{border:0;border-top:1px solid var(--hairline);margin:14px 0}
                 if (bell && bell._x_dataStack) {
                     bell._x_dataStack[0].count++;
                 }
+            } else if (data.type === 'bill_request') {
+                // Estación de caja: una mesa pidió su cuenta → avisar y abrir para imprimir
+                showToast('🧾 ' + data.message, 'warning');
+                addNotification('🧾 ' + data.message + ' — imprimir cuenta', data.order_id, '/orders/' + data.order_id + '/bill/');
+                var bell2 = document.querySelector('#notif-bell');
+                if (bell2 && bell2._x_dataStack) { bell2._x_dataStack[0].count++; }
+                window.open('/orders/' + data.order_id + '/bill/', '_blank');
             }
         };
         ws.onclose = function() { setTimeout(connect, 3000); };
     }
-    function addNotification(message, orderId) {
+    function addNotification(message, orderId, href) {
         var list = document.getElementById('notif-items');
         var empty = list.querySelector('p.empty');
         if (empty) empty.remove();
         var el = document.createElement('a');
-        el.href = '/orders/' + orderId + '/';
+        el.href = href || ('/orders/' + orderId + '/');
         el.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-bottom:1px solid var(--hairline)';
         el.onmouseover = function(){ el.style.background = 'var(--paper)'; };
         el.onmouseout = function(){ el.style.background = ''; };
