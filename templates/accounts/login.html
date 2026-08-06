@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Iniciar sesión — Cocos Barrancos{% endblock %}
+{% block title %}Iniciar sesión — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -77,11 +77,18 @@
     {# Panel arte — espresso #}
     <div class="login-art">
         <div class="brand-row">
-            <div class="mark">C</div>
-            <div class="nm">Cocos Barrancos</div>
+            <div class="mark" style="overflow:hidden">
+                {% if business.logo %}<img src="{{ business.logo.url }}" alt="{{ business.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ business.name|default:"Cocos Barrancos"|slice:":1"|upper }}{% endif %}
+            </div>
+            <div>
+                <div class="nm">{{ business.name|default:"Cocos Barrancos" }}</div>
+                {% if business.branch %}<div style="font-size:12px;color:var(--espresso-ink-2);font-weight:600;margin-top:2px">Sucursal {{ business.branch }}</div>{% endif %}
+            </div>
         </div>
         <div>
-            <div class="big">Casa.<br>Mar.<br><em>Brasa.</em></div>
+            <div class="big">
+                {% for part in business.tagline_parts %}{% if forloop.last %}<em>{{ part }}.</em>{% else %}{{ part }}.<br>{% endif %}{% empty %}Casa.<br>Mar.<br><em>Brasa.</em>{% endfor %}
+            </div>
             <p class="lead">
                 Sistema operativo del restaurante. Órdenes, cocina y caja en vivo — desde el primer mezcal hasta el último postre.
             </p>
@@ -100,8 +107,10 @@
     <div class="login-form">
         <div class="inner">
             <div class="login-mobile-brand">
-                <div class="mark">C</div>
-                <div class="nm">Cocos Barrancos</div>
+                <div class="mark" style="overflow:hidden">
+                    {% if business.logo %}<img src="{{ business.logo.url }}" alt="{{ business.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ business.name|default:"Cocos Barrancos"|slice:":1"|upper }}{% endif %}
+                </div>
+                <div class="nm">{{ business.name|default:"Cocos Barrancos" }}{% if business.branch %} · Sucursal {{ business.branch }}{% endif %}</div>
             </div>
             <h2>Bienvenido.</h2>
             <p class="sub">Ingresa tus credenciales para abrir el servicio.</p>
