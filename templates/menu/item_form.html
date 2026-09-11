@@ -1,4 +1,5 @@
 {% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% load l10n %}
 {% block title %}{{ title }} — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
 {% block page_form_width %}720px{% endblock %}
@@ -35,7 +36,9 @@
                 <label for="{{ form.price.id_for_label }}">Precio</label>
                 <div class="prefix-input">
                     <span class="pfx">$</span>
-                    <input type="number" name="price" step="0.01" min="0" value="{{ form.price.value|default:'' }}" placeholder="0.00" id="{{ form.price.id_for_label }}">
+                    <input type="number" name="price" step="0.01" min="0"
+                           value="{% if form.price.value != None %}{{ form.price.value|unlocalize }}{% endif %}"
+                           placeholder="0.00" id="{{ form.price.id_for_label }}">
                 </div>
                 {% if form.price.errors %}<span class="err">{{ form.price.errors.0 }}</span>{% endif %}
             </div>

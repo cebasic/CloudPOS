@@ -32,7 +32,7 @@
     {# Rail de categorías #}
     <div class="cat-rail" id="cat-rail">
         {% for category in categories %}
-        <div class="cat {% if forloop.first %}on{% endif %}" data-cat="{{ category.pk }}">
+        <div class="cat {% if category.pk == active_category_id %}on{% endif %}" data-cat="{{ category.pk }}">
             <span class="ico">{{ category.name|slice:":1"|upper }}</span>
             <span>{{ category.name }}</span>
             <span class="ct">{{ category.items.count }}</span>
@@ -43,7 +43,7 @@
     {# Grids por categoría #}
     <div>
         {% for category in categories %}
-        <div class="cat-panel" data-cat="{{ category.pk }}" {% if not forloop.first %}style="display:none"{% endif %}>
+        <div class="cat-panel" data-cat="{{ category.pk }}" {% if category.pk != active_category_id %}style="display:none"{% endif %}>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
                 <div>
                     <h2 style="font-weight:800;font-size:20px;letter-spacing:-0.02em">{{ category.name }}</h2>
@@ -111,8 +111,8 @@
                 {% endfor %}
 
                 {% if user.role == 'admin' or user.role == 'manager' %}
-                <a class="dish-card add-new" href="{% url 'menu:item_create' %}"
-                   hx-get="{% url 'menu:item_create' %}" hx-target="#modal-root" hx-swap="innerHTML">
+                <a class="dish-card add-new" href="{% url 'menu:item_create' %}?cat={{ category.pk }}"
+                   hx-get="{% url 'menu:item_create' %}?cat={{ category.pk }}" hx-target="#modal-root" hx-swap="innerHTML">
                     <div class="lab">
                         <span class="plus">+</span>
                         <span>Agregar platillo</span>
@@ -126,15 +126,28 @@
 </div>
 
 <script>
-document.querySelectorAll('#cat-rail .cat').forEach(function(c) {
-    c.addEventListener('click', function() {
-        document.querySelectorAll('#cat-rail .cat').forEach(function(x){ x.classList.remove('on'); });
-        c.classList.add('on');
+(function() {
+    var rail = document.getElementById('cat-rail');
+    if (!rail) return;
+
+    function showCat(catId) {
+        rail.querySelectorAll('.cat').forEach(function(x) {
+            x.classList.toggle('on', x.dataset.cat === catId);
+        });
         document.querySelectorAll('.cat-panel').forEach(function(p) {
-            p.style.display = (p.dataset.cat === c.dataset.cat) ? '' : 'none';
+            p.style.display = (p.dataset.cat === catId) ? '' : 'none';
+        });
+        var url = new URL(window.location.href);
+        url.searchParams.set('cat', catId);
+        history.replaceState(null, '', url.pathname + url.search);
+    }
+
+    rail.querySelectorAll('.cat').forEach(function(c) {
+        c.addEventListener('click', function() {
+            showCat(c.dataset.cat);
         });
     });
-});
+})();
 </script>
 
 {% else %}

@@ -36,9 +36,35 @@ docker compose up -d
 docker compose down
 ```
 
-Al arrancar, el contenedor web ejecuta automáticamente las migraciones, carga los datos de prueba (`seed_data`) y recoge los archivos estáticos. La app queda disponible en **http://localhost**.
+Al arrancar, el contenedor web ejecuta migraciones, intenta `seed_data` **solo si la base está vacía** (no vuelve a crear demos en cada reinicio) y recoge estáticos. La app queda disponible en **http://localhost**.
+
+> En producción ya configurada puedes poner `SEED_DATA=false` en `.env`. Para forzar demos otra vez: `docker compose exec web python manage.py seed_data --force`.
 
 > Para personalizar la configuración (base de datos, secret key, etc.) edita el archivo `.env` antes de levantar los contenedores. Usa `.env.example` como referencia.
+
+## Inventario
+
+Módulo en `/inventario/` (admin/gerente):
+
+- Catálogo de insumos y productos unitarios (par / reorden)
+- Compras, ajustes, merma y conteo físico (kardex)
+- Recetas por platillo → descuento automático al cobrar
+- **Para comprar**: sugerencias por mínimo + consumo reciente (CSV)
+
+Scripts en `scripts/` (pensados para el PC servidor en `/opt/cloudpos`):
+
+```bash
+# Actualizar el POS por SSH (backup + git pull + rebuild)
+./scripts/update.sh
+
+# Preparar USB permanente de backups (una vez, con sudo)
+sudo ./scripts/setup-backup-usb.sh
+
+# Backup manual a USB + disco local
+./scripts/backup-usb.sh
+```
+
+La USB debe quedar **siempre conectada** al servidor, con etiqueta `CLOUDPOS_BK`, montada en `/mnt/cloudpos-backup`.
 
 ## Instalación manual
 

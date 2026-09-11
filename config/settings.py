@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.reservations",
     "apps.tickets",
     "apps.business",
+    "apps.inventory",
 ]
 
 MIDDLEWARE = [

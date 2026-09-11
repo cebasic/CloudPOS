@@ -1,0 +1,53 @@
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% load l10n %}
+{% block title %}{{ title }} — Inventario{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block form_title %}{{ title }}{% endblock %}
+{% block form_subtitle %}Insumo o producto unitario{% endblock %}
+
+{% block form_body %}
+<div class="form-grid">
+    <div class="fg">
+        <label for="{{ form.name.id_for_label }}">Nombre</label>
+        {{ form.name }}
+        {% if form.name.errors %}<span class="err">{{ form.name.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.item_type.id_for_label }}">Tipo</label>
+            {{ form.item_type }}
+        </div>
+        <div class="fg">
+            <label for="{{ form.unit.id_for_label }}">Unidad</label>
+            {{ form.unit }}
+        </div>
+    </div>
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.par_level.id_for_label }}">Mínimo (par)</label>
+            <input type="number" name="par_level" step="0.001" min="0" id="{{ form.par_level.id_for_label }}"
+                   value="{% if form.par_level.value != None %}{{ form.par_level.value|unlocalize }}{% endif %}">
+            <p class="hint">Si la existencia baja de esto, aparece en Para comprar</p>
+        </div>
+        <div class="fg">
+            <label for="{{ form.reorder_qty.id_for_label }}">Cant. reorden</label>
+            <input type="number" name="reorder_qty" step="0.001" min="0" id="{{ form.reorder_qty.id_for_label }}"
+                   value="{% if form.reorder_qty.value != None %}{{ form.reorder_qty.value|unlocalize }}{% endif %}">
+        </div>
+    </div>
+    <div class="fg">
+        <label for="{{ form.menu_item.id_for_label }}">Platillo vinculado (1:1)</label>
+        {{ form.menu_item }}
+        <p class="hint">{{ form.menu_item.help_text }}</p>
+    </div>
+    <div class="fg">
+        <label for="{{ form.notes.id_for_label }}">Notas</label>
+        {{ form.notes }}
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px">
+        {{ form.is_active }} <label for="{{ form.is_active.id_for_label }}" style="margin:0">Activo</label>
+    </div>
+</div>
+{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">Guardar</button>{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Para comprar — Inventario{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Inventario › Para comprar{% endblock %}
+
+{% block content %}
+<div class="view-fade">
+<div class="page-head">
+    <div>
+        <h1>Para <em>comprar</em></h1>
+        <p class="sub">Sugerencias por par + consumo de los últimos {{ lookback }} días · cobertura {{ days_cover }} días</p>
+    </div>
+    <div class="right">
+        <a href="{% url 'inventory:buy_list_csv' %}?days={{ days_cover }}&lookback={{ lookback }}" class="btn">Exportar CSV</a>
+        <a href="{% url 'inventory:list' %}" class="btn ghost">Inventario</a>
+    </div>
+</div>
+
+<form method="get" class="form-grid cols-2" style="max-width:420px;margin-bottom:18px">
+    <div class="fg">
+        <label>Días de cobertura</label>
+        <input type="number" name="days" min="1" max="30" value="{{ days_cover }}" class="input">
+    </div>
+    <div class="fg">
+        <label>Lookback consumo</label>
+        <input type="number" name="lookback" min="1" max="90" value="{{ lookback }}" class="input">
+    </div>
+    <button type="submit" class="btn primary" style="align-self:end">Recalcular</button>
+</form>
+
+<div class="user-table">
+    <div class="user-head" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr">
+        <div>Ítem</div><div>Existencia</div><div>Par</div><div>Gap par</div><div>Uso/día</div><div>Comprar</div>
+    </div>
+    {% for row in suggestions %}
+    <div class="user-row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr">
+        <div>
+            <a href="{% url 'inventory:detail' row.item.pk %}" style="font-weight:700;color:var(--ink)">{{ row.item.name }}</a>
+            {% if row.item.is_below_par %}<span class="chip berry" style="margin-left:6px"><i></i> Bajo</span>{% endif %}
+        </div>
+        <div class="mono">{% localize off %}{{ row.item.qty_on_hand }}{% endlocalize %} {{ row.item.unit }}</div>
+        <div class="mono">{% localize off %}{{ row.item.par_level }}{% endlocalize %}</div>
+        <div class="mono">{% localize off %}{{ row.gap_par }}{% endlocalize %}</div>
+        <div class="mono">{% localize off %}{{ row.avg_daily_use|floatformat:3 }}{% endlocalize %}</div>
+        <div class="mono" style="font-weight:800;color:var(--terracotta)">{% localize off %}{{ row.suggested_qty }}{% endlocalize %}</div>
+    </div>
+    {% empty %}
+    <p class="muted" style="padding:28px;text-align:center">
+        Nada que comprar por ahora.
+        {% if not simple_below %}Define mínimos (par) en tus ítems y registra compras/ventas.{% endif %}
+    </p>
+    {% endfor %}
+</div>
+</div>
+{% endblock %}

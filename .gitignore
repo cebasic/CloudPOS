@@ -32,3 +32,6 @@ staticfiles/
 # OS
 .DS_Store
 Thumbs.db
+
+# Notas locales de trabajo (no van al repo)
+docs/

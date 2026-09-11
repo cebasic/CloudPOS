@@ -89,18 +89,26 @@ class PaymentForm(forms.Form):
         cleaned = super().clean()
         method = cleaned.get("method")
         amount = cleaned.get("amount_received")
+        tip = cleaned.get("tip") or 0
+        due_total = (self.order_total or 0) + tip
         if method == "cash":
             if not amount:
                 self.add_error("amount_received", "Ingresa el monto recibido para pago en efectivo.")
-            elif self.order_total and amount < self.order_total:
-                self.add_error("amount_received", f"El monto debe ser al menos ${self.order_total}.")
+            elif self.order_total is not None and amount < due_total:
+                self.add_error(
+                    "amount_received",
+                    f"El monto debe ser al menos ${due_total} (total + propina).",
+                )
         if method == "mixed":
             cash = cleaned.get("cash_amount") or 0
             card = cleaned.get("card_amount") or 0
             if not cash and not card:
                 self.add_error("cash_amount", "Ingresa los montos de efectivo y tarjeta.")
-            elif self.order_total and (cash + card) < self.order_total:
-                self.add_error("cash_amount", f"La suma debe ser al menos ${self.order_total}.")
+            elif self.order_total is not None and (cash + card) < due_total:
+                self.add_error(
+                    "cash_amount",
+                    f"La suma debe ser al menos ${due_total} (total + propina).",
+                )
         return cleaned
 
 

@@ -1,0 +1,21 @@
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% load l10n %}
+{% block title %}Compra — {{ item.name }}{% endblock %}
+{% block page_title %}Registrar compra{% endblock %}
+{% block form_title %}Compra · {{ item.name }}{% endblock %}
+{% block form_subtitle %}Existencia actual: {% localize off %}{{ item.qty_on_hand }}{% endlocalize %} {{ item.unit }}{% endblock %}
+{% block form_body %}
+<div class="form-grid">
+    <div class="fg">
+        <label for="{{ form.quantity.id_for_label }}">Cantidad ({{ item.unit }})</label>
+        <input type="number" name="quantity" step="0.001" min="0.001" id="{{ form.quantity.id_for_label }}" autofocus
+               value="{% if form.quantity.value != None %}{{ form.quantity.value|unlocalize }}{% endif %}">
+        {% if form.quantity.errors %}<span class="err">{{ form.quantity.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="fg">
+        <label for="{{ form.note.id_for_label }}">Nota</label>
+        {{ form.note }}
+    </div>
+</div>
+{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">Registrar compra</button>{% endblock %}

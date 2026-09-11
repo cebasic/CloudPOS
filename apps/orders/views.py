@@ -252,9 +252,10 @@ def order_checkout(request, pk):
         cash_amount = form.cleaned_data.get("cash_amount")
         card_amount = form.cleaned_data.get("card_amount")
         change_due = None
+        due_total = final_total + tip
 
-        if method == "cash" and amount_received:
-            change_due = amount_received - final_total
+        if method == "cash" and amount_received is not None:
+            change_due = amount_received - due_total
 
         Payment.objects.create(
             order=order,
@@ -271,6 +272,24 @@ def order_checkout(request, pk):
         order.status = "closed"
         order.save(update_fields=["status", "updated_at"])
 
+        # Inventario: descuento por receta / vínculo 1:1 (no bloquea cobro)
+        try:
+            from apps.inventory.services import deduct_for_order
+            inv_moves = deduct_for_order(order, user=request.user)
+            low = [
+                m.stock_item.name
+                for m in inv_moves
+                if m.stock_item.par_level > 0 and m.qty_after < m.stock_item.par_level
+            ]
+            if low:
+                messages.warning(
+                    request,
+                    "Stock bajo después del cobro: " + ", ".join(sorted(set(low))[:8]),
+                )
+        except Exception:
+            # Nunca tumbar el cobro por un fallo de inventario
+            messages.warning(request, "Cobro OK, pero no se pudo actualizar el inventario.")
+
         has_active = Order.objects.filter(
             table=order.table, status__in=["pending", "in_progress", "ready", "delivered"]
         ).exclude(pk=order.pk).exists()
@@ -280,7 +299,7 @@ def order_checkout(request, pk):
 
         _notify_kitchen(order)
 
-        if method == "cash" and change_due:
+        if method == "cash" and change_due is not None:
             messages.success(request, f"Orden #{order.pk} cobrada. Cambio: ${change_due:.2f}")
         else:
             messages.success(request, f"Orden #{order.pk} cobrada con {order.get_payment_method_display() if hasattr(order, 'get_payment_method_display') else method}.")

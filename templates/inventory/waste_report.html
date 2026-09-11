@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Merma — Inventario{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Inventario › Merma{% endblock %}
+
+{% block content %}
+<div class="view-fade" style="max-width:720px;margin:0 auto">
+<div class="page-head">
+    <div>
+        <h1>Reporte de <em>merma</em></h1>
+        <p class="sub">Últimos {{ days }} días · mermas + ajustes negativos de conteo</p>
+    </div>
+    <div class="right">
+        <form method="get" style="display:flex;gap:8px;align-items:end">
+            <div class="fg" style="margin:0">
+                <label>Días</label>
+                <input type="number" name="days" value="{{ days }}" min="1" max="365" class="input" style="width:90px">
+            </div>
+            <button class="btn primary" type="submit">Filtrar</button>
+        </form>
+    </div>
+</div>
+
+<div class="summary" style="margin-bottom:16px">
+    <div class="stot"><span class="l">Unidades perdidas (suma)</span>
+        <span class="v">{% localize off %}{{ report.total_lost_units }}{% endlocalize %}</span></div>
+</div>
+
+<div class="user-table">
+    <div class="user-head" style="grid-template-columns:2fr 1fr 1fr">
+        <div>Ítem</div><div>Unidad</div><div>Perdido</div>
+    </div>
+    {% for row in report.rows %}
+    <div class="user-row" style="grid-template-columns:2fr 1fr 1fr">
+        <div style="font-weight:700">{{ row.name }}</div>
+        <div>{{ row.unit }}</div>
+        <div class="mono" style="color:#7A3947">{% localize off %}{{ row.lost }}{% endlocalize %}</div>
+    </div>
+    {% empty %}
+    <p class="muted" style="padding:24px;text-align:center">Sin merma registrada en el periodo.</p>
+    {% endfor %}
+</div>
+</div>
+{% endblock %}

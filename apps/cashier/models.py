@@ -74,8 +74,8 @@ class CashSession(models.Model):
         return self.expenses.aggregate(t=Sum("amount"))["t"] or 0
 
     def expected_in_drawer(self):
-        """Fondo inicial + ventas en efectivo neto."""
-        return self.initial_cash + self.cash_sales()
+        """Fondo inicial + ventas en efectivo − gastos del turno."""
+        return self.initial_cash + self.cash_sales() - self.total_expenses()
 
     def net_revenue(self):
         return self.total_sales() - self.total_expenses()

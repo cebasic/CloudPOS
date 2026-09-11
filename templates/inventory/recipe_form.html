@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}Receta · {{ menu_item.name }}{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Receta › {{ menu_item.name }}{% endblock %}
+
+{% block content %}
+<div class="view-fade" style="max-width:720px;margin:0 auto">
+<div class="page-head">
+    <div>
+        <h1>Receta · <em>{{ menu_item.name }}</em></h1>
+        <p class="sub">Cantidad de cada insumo por 1 platillo vendido</p>
+    </div>
+    <a href="{% url 'inventory:recipe_index' %}" class="btn ghost">Volver</a>
+</div>
+
+<form method="post" class="card">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    <div class="card-body form-grid">
+        {% if formset.non_form_errors %}<div class="err">{{ formset.non_form_errors }}</div>{% endif %}
+        {% for f in formset %}
+        <div class="form-grid cols-2" style="align-items:end;border-bottom:1px dashed var(--hairline);padding-bottom:10px">
+            {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="fg">
+                <label>Insumo</label>
+                {{ f.stock_item }}
+                {% if f.stock_item.errors %}<span class="err">{{ f.stock_item.errors.0 }}</span>{% endif %}
+            </div>
+            <div class="fg">
+                <label>Cantidad</label>
+                <input type="number" name="{{ f.quantity.html_name }}" step="0.001" min="0.001"
+                       value="{% if f.quantity.value != None %}{{ f.quantity.value|unlocalize }}{% endif %}"
+                       id="{{ f.quantity.id_for_label }}">
+                {% if f.quantity.errors %}<span class="err">{{ f.quantity.errors.0 }}</span>{% endif %}
+            </div>
+            {% if f.instance.pk %}
+            <div class="fg" style="grid-column:1/-1">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:600">
+                    {{ f.DELETE }} Eliminar esta línea
+                </label>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="modal-foot" style="border-top:1px solid var(--hairline);padding:14px 18px">
+        <span class="left muted">Al cobrar se descuenta automáticamente</span>
+        <button type="submit" class="btn primary">Guardar receta</button>
+    </div>
+</form>
+</div>
+{% endblock %}

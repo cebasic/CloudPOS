@@ -1,0 +1,23 @@
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% load l10n %}
+{% block title %}Ajuste — {{ item.name }}{% endblock %}
+{% block page_title %}Ajuste manual{% endblock %}
+{% block form_title %}Ajuste · {{ item.name }}{% endblock %}
+{% block form_subtitle %}Existencia: {% localize off %}{{ item.qty_on_hand }}{% endlocalize %} {{ item.unit }}{% endblock %}
+{% block form_body %}
+<div class="form-grid">
+    <div class="fg">
+        <label for="{{ form.quantity_delta.id_for_label }}">Δ cantidad</label>
+        <input type="number" name="quantity_delta" step="0.001" id="{{ form.quantity_delta.id_for_label }}" autofocus
+               value="{% if form.quantity_delta.value != None %}{{ form.quantity_delta.value|unlocalize }}{% endif %}"
+               placeholder="+10 o -2.5">
+        <p class="hint">Positivo suma, negativo resta</p>
+        {% if form.quantity_delta.errors %}<span class="err">{{ form.quantity_delta.errors.0 }}</span>{% endif %}
+    </div>
+    <div class="fg">
+        <label for="{{ form.note.id_for_label }}">Motivo</label>
+        {{ form.note }}
+    </div>
+</div>
+{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">Aplicar ajuste</button>{% endblock %}
