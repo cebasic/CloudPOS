@@ -43,6 +43,9 @@
     <p class="sub">Conteo contra lo esperado en caja</p>
     <div class="sline"><span>Fondo inicial</span><span class="v">${{ cut.initial_cash|floatformat:2 }}</span></div>
     <div class="sline"><span>Ventas efectivo</span><span class="v">+${{ cut.cash_sales|floatformat:2 }}</span></div>
+    {% if cut.total_expenses %}
+    <div class="sline"><span>Gastos del turno</span><span class="v">−${{ cut.total_expenses|floatformat:2 }}</span></div>
+    {% endif %}
     <div class="sline"><span>Cambio dado</span><span class="v">−${{ cut.change_given|floatformat:2 }}</span></div>
     <hr class="hair"/>
     <div class="sline"><span style="font-weight:700">Esperado en caja</span><span class="v" style="font-weight:700">${{ cut.cash_expected|floatformat:2 }}</span></div>
