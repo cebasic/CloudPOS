@@ -252,9 +252,10 @@ def order_checkout(request, pk):
         cash_amount = form.cleaned_data.get("cash_amount")
         card_amount = form.cleaned_data.get("card_amount")
         change_due = None
+        due_total = final_total + tip
 
-        if method == "cash" and amount_received:
-            change_due = amount_received - final_total
+        if method == "cash" and amount_received is not None:
+            change_due = amount_received - due_total
 
         Payment.objects.create(
             order=order,
@@ -280,7 +281,7 @@ def order_checkout(request, pk):
 
         _notify_kitchen(order)
 
-        if method == "cash" and change_due:
+        if method == "cash" and change_due is not None:
             messages.success(request, f"Orden #{order.pk} cobrada. Cambio: ${change_due:.2f}")
         else:
             messages.success(request, f"Orden #{order.pk} cobrada con {order.get_payment_method_display() if hasattr(order, 'get_payment_method_display') else method}.")
