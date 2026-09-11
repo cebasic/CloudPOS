@@ -36,7 +36,9 @@ docker compose up -d
 docker compose down
 ```
 
-Al arrancar, el contenedor web ejecuta automáticamente las migraciones, carga los datos de prueba (`seed_data`) y recoge los archivos estáticos. La app queda disponible en **http://localhost**.
+Al arrancar, el contenedor web ejecuta migraciones, intenta `seed_data` **solo si la base está vacía** (no vuelve a crear demos en cada reinicio) y recoge estáticos. La app queda disponible en **http://localhost**.
+
+> En producción ya configurada puedes poner `SEED_DATA=false` en `.env`. Para forzar demos otra vez: `docker compose exec web python manage.py seed_data --force`.
 
 > Para personalizar la configuración (base de datos, secret key, etc.) edita el archivo `.env` antes de levantar los contenedores. Usa `.env.example` como referencia.
 

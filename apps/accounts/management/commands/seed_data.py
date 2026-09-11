@@ -8,7 +8,11 @@ from apps.menu.models import Category, MenuItem
 
 
 class Command(BaseCommand):
-    help = "Seed the database with sample data for development"
+    help = (
+        "Seed the database with sample data for first-time setup. "
+        "Skips automatically if the DB already looks initialized "
+        "(unless --force is passed)."
+    )
 
     @staticmethod
     def _get_or_create(model, defaults=None, **lookup):
@@ -24,7 +28,34 @@ class Command(BaseCommand):
             return obj, False
         return model.objects.create(**{**lookup, **(defaults or {})}), True
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help=(
+                "Re-run seed even if the database already has data. "
+                "Only recreates missing demo rows (get_or_create); "
+                "does not overwrite existing users/menu/tables."
+            ),
+        )
+
     def handle(self, *args, **options):
+        force = options["force"]
+        already_initialized = (
+            User.objects.filter(username="admin").exists()
+            or Table.objects.exists()
+            or Category.objects.exists()
+            or MenuItem.objects.exists()
+        )
+        if already_initialized and not force:
+            self.stdout.write(
+                self.style.WARNING(
+                    "Database already initialized — skipping seed_data "
+                    "(pass --force to run anyway)."
+                )
+            )
+            return
+
         self.stdout.write("Seeding database...")
 
         # Users
