@@ -143,8 +143,14 @@ def stock_waste(request, pk):
 @login_required
 @role_required(*_ROLES)
 def buy_list(request):
-    days_cover = int(request.GET.get("days", 5) or 5)
-    lookback = int(request.GET.get("lookback", 14) or 14)
+    try:
+        days_cover = int(request.GET.get("days", 5) or 5)
+    except (TypeError, ValueError):
+        days_cover = 5
+    try:
+        lookback = int(request.GET.get("lookback", 14) or 14)
+    except (TypeError, ValueError):
+        lookback = 14
     suggestions = purchase_suggestions(days_cover=days_cover, lookback_days=lookback)
     simple_below = items_below_par()
     return render(request, "inventory/buy_list.html", {
@@ -158,8 +164,14 @@ def buy_list(request):
 @login_required
 @role_required(*_ROLES)
 def buy_list_csv(request):
-    days_cover = int(request.GET.get("days", 5) or 5)
-    lookback = int(request.GET.get("lookback", 14) or 14)
+    try:
+        days_cover = int(request.GET.get("days", 5) or 5)
+    except (TypeError, ValueError):
+        days_cover = 5
+    try:
+        lookback = int(request.GET.get("lookback", 14) or 14)
+    except (TypeError, ValueError):
+        lookback = 14
     suggestions = purchase_suggestions(days_cover=days_cover, lookback_days=lookback)
     lines = ["nombre,unidad,existencia,par,sugerido,consumo_diario_prom"]
     for row in suggestions:
@@ -204,11 +216,8 @@ def stock_count(request):
     form = StockCountForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
-        count = StockCount.objects.create(
-            counted_by=request.user,
-            notes=form.cleaned_data.get("notes") or "",
-        )
-        adjusted = 0
+        # Validar todas las cantidades ANTES de escribir (evita conteo a medias)
+        parsed = []
         for item in items:
             raw = request.POST.get(f"qty_{item.pk}", "").strip()
             if raw == "":
@@ -218,6 +227,14 @@ def stock_count(request):
             except (InvalidOperation, ValueError):
                 messages.error(request, f"Cantidad inválida para {item.name}.")
                 return redirect("inventory:count")
+            parsed.append((item, counted))
+
+        count = StockCount.objects.create(
+            counted_by=request.user,
+            notes=form.cleaned_data.get("notes") or "",
+        )
+        adjusted = 0
+        for item, counted in parsed:
             diff = counted - item.qty_on_hand
             StockCountLine.objects.create(
                 count=count,
@@ -257,6 +274,9 @@ def stock_count_detail(request, pk):
 @login_required
 @role_required(*_ROLES)
 def waste_report_view(request):
-    days = int(request.GET.get("days", 30) or 30)
+    try:
+        days = int(request.GET.get("days", 30) or 30)
+    except (TypeError, ValueError):
+        days = 30
     report = waste_report(days=days)
     return render(request, "inventory/waste_report.html", {"report": report, "days": days})
