@@ -2,17 +2,40 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
+from django.urls import reverse
 
 from apps.accounts.decorators import role_required
 from .forms import CategoryForm, MenuItemForm
 from .models import Category, MenuItem
 
 
+def _menu_list_redirect(category_id=None):
+    """Vuelve al listado del menú, opcionalmente en la categoría activa."""
+    url = reverse("menu:category_list")
+    if category_id:
+        return redirect(f"{url}?cat={category_id}")
+    return redirect(url)
+
+
 @login_required
 @role_required("admin", "manager")
 def category_list(request):
-    categories = Category.objects.prefetch_related("items").all()
-    return render(request, "menu/category_list.html", {"categories": categories})
+    categories = list(Category.objects.prefetch_related("items").all())
+    active_category_id = None
+    raw_cat = request.GET.get("cat")
+    if raw_cat:
+        try:
+            cat_id = int(raw_cat)
+        except (TypeError, ValueError):
+            cat_id = None
+        if cat_id and any(c.pk == cat_id for c in categories):
+            active_category_id = cat_id
+    if active_category_id is None and categories:
+        active_category_id = categories[0].pk
+    return render(request, "menu/category_list.html", {
+        "categories": categories,
+        "active_category_id": active_category_id,
+    })
 
 
 @login_required
@@ -20,9 +43,9 @@ def category_list(request):
 def category_create(request):
     form = CategoryForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        category = form.save()
         messages.success(request, "Categoria creada exitosamente.")
-        return redirect("menu:category_list")
+        return _menu_list_redirect(category.pk)
     return render(request, "menu/category_form.html", {"form": form, "title": "Nueva Categoria"})
 
 
@@ -34,7 +57,7 @@ def category_edit(request, pk):
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "Categoria actualizada.")
-        return redirect("menu:category_list")
+        return _menu_list_redirect(category.pk)
     return render(request, "menu/category_form.html", {"form": form, "title": f"Editar: {category.name}"})
 
 
@@ -52,11 +75,18 @@ def category_delete(request, pk):
 @login_required
 @role_required("admin", "manager")
 def item_create(request):
-    form = MenuItemForm(request.POST or None, request.FILES or None)
+    initial = {}
+    pref_cat = request.GET.get("cat")
+    if pref_cat:
+        try:
+            initial["category"] = int(pref_cat)
+        except (TypeError, ValueError):
+            pass
+    form = MenuItemForm(request.POST or None, request.FILES or None, initial=initial)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        item = form.save()
         messages.success(request, "Platillo creado exitosamente.")
-        return redirect("menu:category_list")
+        return _menu_list_redirect(item.category_id)
     return render(request, "menu/item_form.html", {"form": form, "title": "Nuevo Platillo"})
 
 
@@ -66,9 +96,9 @@ def item_edit(request, pk):
     item = get_object_or_404(MenuItem, pk=pk)
     form = MenuItemForm(request.POST or None, request.FILES or None, instance=item)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        item = form.save()
         messages.success(request, "Platillo actualizado.")
-        return redirect("menu:category_list")
+        return _menu_list_redirect(item.category_id)
     return render(request, "menu/item_form.html", {"form": form, "title": f"Editar: {item.name}"})
 
 
@@ -77,9 +107,11 @@ def item_edit(request, pk):
 def item_delete(request, pk):
     item = get_object_or_404(MenuItem, pk=pk)
     if request.method == "POST":
+        category_id = item.category_id
+        name = item.name
         item.delete()
-        messages.success(request, f"Platillo '{item.name}' eliminado.")
-        return redirect("menu:category_list")
+        messages.success(request, f"Platillo '{name}' eliminado.")
+        return _menu_list_redirect(category_id)
     return render(request, "menu/item_confirm_delete.html", {"item": item})
 
 
@@ -95,7 +127,7 @@ def item_toggle_available(request, pk):
         else:
             badge = '<span class="chip berry"><i></i> 86</span>'
         return HttpResponse(badge)
-    return redirect("menu:category_list")
+    return _menu_list_redirect(item.category_id)
 
 
 @login_required
