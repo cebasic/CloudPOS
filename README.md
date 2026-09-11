@@ -42,6 +42,23 @@ Al arrancar, el contenedor web ejecuta migraciones, intenta `seed_data` **solo s
 
 > Para personalizar la configuración (base de datos, secret key, etc.) edita el archivo `.env` antes de levantar los contenedores. Usa `.env.example` como referencia.
 
+## Operación en servidor (backup / update)
+
+Scripts en `scripts/` (pensados para el PC servidor en `/opt/cloudpos`):
+
+```bash
+# Actualizar el POS por SSH (backup + git pull + rebuild)
+./scripts/update.sh
+
+# Preparar USB permanente de backups (una vez, con sudo)
+sudo ./scripts/setup-backup-usb.sh
+
+# Backup manual a USB + disco local
+./scripts/backup-usb.sh
+```
+
+La USB debe quedar **siempre conectada** al servidor, con etiqueta `CLOUDPOS_BK`, montada en `/mnt/cloudpos-backup`.
+
 ## Instalación manual
 
 ```bash
