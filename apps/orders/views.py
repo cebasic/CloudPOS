@@ -272,6 +272,24 @@ def order_checkout(request, pk):
         order.status = "closed"
         order.save(update_fields=["status", "updated_at"])
 
+        # Inventario: descuento por receta / vínculo 1:1 (no bloquea cobro)
+        try:
+            from apps.inventory.services import deduct_for_order
+            inv_moves = deduct_for_order(order, user=request.user)
+            low = [
+                m.stock_item.name
+                for m in inv_moves
+                if m.stock_item.par_level > 0 and m.qty_after < m.stock_item.par_level
+            ]
+            if low:
+                messages.warning(
+                    request,
+                    "Stock bajo después del cobro: " + ", ".join(sorted(set(low))[:8]),
+                )
+        except Exception:
+            # Nunca tumbar el cobro por un fallo de inventario
+            messages.warning(request, "Cobro OK, pero no se pudo actualizar el inventario.")
+
         has_active = Order.objects.filter(
             table=order.table, status__in=["pending", "in_progress", "ready", "delivered"]
         ).exclude(pk=order.pk).exists()

@@ -65,6 +65,12 @@
         <span>Menú</span>
     </a>
 
+    <a href="{% url 'inventory:list' %}"
+       class="{% if request.resolver_match.app_name == 'inventory' %}active{% endif %}">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h18M3 12h18M3 17h18"/><path d="M7 7v10M12 7v10M17 7v10"/></svg>
+        <span>Inventario</span>
+    </a>
+
     <a href="{% url 'tables:list' %}"
        class="{% if request.resolver_match.app_name == 'tables' %}active{% endif %}">
         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="5.5"/><path d="M12 13.5V21M8 21h8"/></svg>

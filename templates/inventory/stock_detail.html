@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load l10n %}
+{% block title %}{{ item.name }} — Inventario{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Inventario › {{ item.name }}{% endblock %}
+
+{% block content %}
+<div class="view-fade" style="max-width:900px;margin:0 auto">
+<div class="page-head">
+    <div>
+        <h1>{{ item.name }}</h1>
+        <p class="sub">{{ item.get_item_type_display }} · {{ item.get_unit_display }}
+            {% if item.menu_item %} · vinculado a <em>{{ item.menu_item.name }}</em>{% endif %}
+        </p>
+    </div>
+    <div class="right">
+        <a href="{% url 'inventory:edit' item.pk %}" class="btn"
+           hx-get="{% url 'inventory:edit' item.pk %}" hx-target="#modal-root" hx-swap="innerHTML">Editar</a>
+        <a href="{% url 'inventory:list' %}" class="btn ghost">Volver</a>
+    </div>
+</div>
+
+<div class="reports-grid" style="margin-bottom:20px">
+    <div class="summary">
+        <h3>Existencia</h3>
+        <div class="stot"><span class="l">En almacén</span>
+            <span class="v" style="font-size:34px">{% localize off %}{{ item.qty_on_hand }}{% endlocalize %} <small>{{ item.unit }}</small></span>
+        </div>
+        <div class="sline"><span>Par (mínimo)</span><span class="v">{% localize off %}{{ item.par_level }}{% endlocalize %}</span></div>
+        <div class="sline"><span>Sugerido comprar</span><span class="v">{% localize off %}{{ item.suggested_buy_qty }}{% endlocalize %}</span></div>
+        {% if item.is_below_par %}<p class="hint" style="color:var(--berry);font-weight:700;margin-top:8px">Bajo el mínimo</p>{% endif %}
+    </div>
+    <div class="card">
+        <div class="card-head"><h2>Movimientos <em>rápidos</em></h2></div>
+        <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px">
+            <a href="{% url 'inventory:purchase' item.pk %}" class="btn primary"
+               hx-get="{% url 'inventory:purchase' item.pk %}" hx-target="#modal-root" hx-swap="innerHTML">+ Compra</a>
+            <a href="{% url 'inventory:adjust' item.pk %}" class="btn"
+               hx-get="{% url 'inventory:adjust' item.pk %}" hx-target="#modal-root" hx-swap="innerHTML">Ajuste</a>
+            <a href="{% url 'inventory:waste' item.pk %}" class="btn danger"
+               hx-get="{% url 'inventory:waste' item.pk %}" hx-target="#modal-root" hx-swap="innerHTML">Merma</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head"><h2>Kardex <em>reciente</em></h2></div>
+    <div class="card-body" style="padding:0">
+        <div class="user-table">
+            <div class="user-head" style="grid-template-columns:1.2fr 1fr 1fr 1fr 1.4fr">
+                <div>Fecha</div><div>Motivo</div><div>Δ</div><div>Después</div><div>Nota</div>
+            </div>
+            {% for m in movements %}
+            <div class="user-row" style="grid-template-columns:1.2fr 1fr 1fr 1fr 1.4fr">
+                <div class="mono" style="font-size:12px">{{ m.created_at|date:"d/m H:i" }}</div>
+                <div>{{ m.get_reason_display }}</div>
+                <div class="mono" style="{% if m.quantity_delta < 0 %}color:#7A3947{% else %}color:var(--sage-2){% endif %}">
+                    {% if m.quantity_delta > 0 %}+{% endif %}{% localize off %}{{ m.quantity_delta }}{% endlocalize %}
+                </div>
+                <div class="mono">{% localize off %}{{ m.qty_after }}{% endlocalize %}</div>
+                <div class="muted" style="font-size:12px">{{ m.note|default:"—" }}</div>
+            </div>
+            {% empty %}
+            <p class="muted" style="padding:20px;text-align:center">Sin movimientos aún. Registra una compra para cargar stock.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

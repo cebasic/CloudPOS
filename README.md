@@ -42,7 +42,14 @@ Al arrancar, el contenedor web ejecuta migraciones, intenta `seed_data` **solo s
 
 > Para personalizar la configuración (base de datos, secret key, etc.) edita el archivo `.env` antes de levantar los contenedores. Usa `.env.example` como referencia.
 
-## Operación en servidor (backup / update)
+## Inventario
+
+Módulo en `/inventario/` (admin/gerente):
+
+- Catálogo de insumos y productos unitarios (par / reorden)
+- Compras, ajustes, merma y conteo físico (kardex)
+- Recetas por platillo → descuento automático al cobrar
+- **Para comprar**: sugerencias por mínimo + consumo reciente (CSV)
 
 Scripts en `scripts/` (pensados para el PC servidor en `/opt/cloudpos`):
 
