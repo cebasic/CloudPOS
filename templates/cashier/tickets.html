@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Tickets cobrados — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
+{% block crumb_section %}Gestión{% endblock %}
+{% block page_title %}Caja › Tickets{% endblock %}
+
+{% block content %}
+<div class="view-fade">
+
+<div class="page-head">
+    <div>
+        <h1>Tickets <em>cobrados</em></h1>
+        <p class="sub">Reimprime un recibo si falló la ticketera, se acabó el papel o el cliente lo pide de nuevo</p>
+    </div>
+    <div class="right">
+        <a href="{% url 'cashier:dashboard' %}" class="btn">← Volver a caja</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+    <div class="card-body" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+        <form method="get" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;flex:1;min-width:0">
+            <div class="fg" style="margin:0;min-width:200px;flex:1">
+                <label for="session">Sesión</label>
+                <select class="input" name="session" id="session" onchange="this.form.submit()">
+                    {% for s in sessions %}
+                    <option value="{{ s.pk }}" {% if session and session.pk == s.pk %}selected{% endif %}>
+                        #{{ s.pk }} · {{ s.opened_at|date:"d/m H:i" }}
+                        {% if s.status == 'open' %}(abierta){% else %}→ {{ s.closed_at|date:"H:i" }}{% endif %}
+                        · {{ s.opened_by.get_full_name|default:s.opened_by.username }}
+                    </option>
+                    {% empty %}
+                    <option value="">Sin sesiones</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="fg" style="margin:0;min-width:180px;flex:1">
+                <label for="q">Buscar</label>
+                <input class="input" type="search" name="q" id="q" value="{{ q }}"
+                       placeholder="Folio, mesa, nombre, tel…">
+            </div>
+            <button type="submit" class="btn primary">Buscar</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <h2>{% if session %}Sesión #{{ session.pk }}{% else %}Tickets{% endif %}</h2>
+        <span class="meta">{{ payments|length }} ticket{{ payments|length|pluralize }}</span>
+    </div>
+    <div class="list">
+        {% for p in payments %}
+        <div class="item">
+            <div class="num">#{{ p.order_id }}</div>
+            <div style="min-width:0;flex:1">
+                <div class="ttl">{{ p.order.display_label }}</div>
+                <div class="sub">
+                    {{ p.created_at|date:"d/m H:i" }}
+                    · {{ p.get_method_display }}
+                    {% if p.tip %} · propina ${{ p.tip }}{% endif %}
+                    {% if p.order.customer_phone %} · {{ p.order.customer_phone }}{% endif %}
+                    · {{ p.collected_by.get_full_name|default:p.collected_by.username }}
+                </div>
+            </div>
+            <div class="right" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <div class="amount">${{ p.grand_total }}</div>
+                <a class="btn primary sm"
+                   href="{% url 'orders:receipt' p.order_id %}?next={% url 'cashier:tickets' %}"
+                   target="_blank" rel="noopener">
+                    Reimprimir
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <p style="padding:28px 18px;text-align:center" class="muted">
+            {% if session %}No hay tickets cobrados en esta sesión.{% else %}Abre una sesión de caja para empezar.{% endif %}
+        </p>
+        {% endfor %}
+    </div>
+</div>
+
+</div>
+{% endblock %}

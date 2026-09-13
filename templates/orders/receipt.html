@@ -123,7 +123,9 @@
 
   <div class="actions no-print">
     <button class="pri" onclick="window.print()">Imprimir</button>
-    {% if order.is_togo %}
+    {% if receipt_next %}
+    <a href="{{ receipt_next }}">Volver a tickets</a>
+    {% elif order.is_togo %}
     <a href="{% url 'cashier:dashboard' %}">Volver a Caja</a>
     {% else %}
     <a href="{% url 'orders:dashboard' %}">Volver al Restaurant</a>

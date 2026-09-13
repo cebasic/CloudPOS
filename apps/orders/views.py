@@ -374,7 +374,14 @@ def order_receipt(request, pk):
         Order.objects.select_related("table", "waiter", "payment").prefetch_related("items__menu_item"),
         pk=pk,
     )
-    return render(request, "orders/receipt.html", {"order": order})
+    next_url = (request.GET.get("next") or "").strip()
+    # Solo rutas internas relativas (anti open-redirect)
+    if not (next_url.startswith("/") and not next_url.startswith("//")):
+        next_url = ""
+    return render(request, "orders/receipt.html", {
+        "order": order,
+        "receipt_next": next_url,
+    })
 
 
 @login_required
