@@ -52,7 +52,9 @@ class KitchenConsumer(AsyncWebsocketConsumer):
         result = []
         for order in orders:
             items = []
-            for item in order.items.all():
+            for item in order.items.select_related("menu_item").all():
+                if not item.menu_item.requires_kitchen:
+                    continue
                 items.append({
                     "id": item.pk,
                     "name": item.menu_item.name,
@@ -61,6 +63,8 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                     "status": item.status,
                     "status_display": item.get_status_display(),
                 })
+            if not items:
+                continue
             result.append({
                 "id": order.pk,
                 "table_number": order.display_label,
@@ -75,7 +79,6 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                 "items": items,
             })
         return result
-
     @database_sync_to_async
     def update_item_status(self, item_id, status):
         try:

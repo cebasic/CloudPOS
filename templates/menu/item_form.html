@@ -95,6 +95,19 @@
             </div>
         </div>
         <div class="fg">
+            <label>¿Pasa por cocina?</label>
+            <div class="chip-pick" data-pick>
+                <label class="{% if form.requires_kitchen.value != False %}on{% endif %}">
+                    <input type="radio" name="requires_kitchen" value="True" {% if form.requires_kitchen.value != False %}checked{% endif %}> Sí · cocina
+                </label>
+                <label class="{% if form.requires_kitchen.value == False %}on{% endif %}">
+                    <input type="radio" name="requires_kitchen" value="False" {% if form.requires_kitchen.value == False %}checked{% endif %}> No · mesero
+                </label>
+            </div>
+            <p class="hint">Refresco, té embotellado, agua, etc. → “No · mesero”</p>
+            {% if form.requires_kitchen.errors %}<span class="err">{{ form.requires_kitchen.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
             <label for="{{ form.description.id_for_label }}">Descripción</label>
             {{ form.description }}
             {% if form.description.errors %}<span class="err">{{ form.description.errors.0 }}</span>{% endif %}

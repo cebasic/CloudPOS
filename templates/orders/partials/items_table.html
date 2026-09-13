@@ -9,6 +9,7 @@
         {% if item.status == 'pending' %}<span class="chip gold"><i></i> Pendiente</span>
         {% elif item.status == 'preparing' %}<span class="chip ocean"><i></i> Preparando</span>
         {% elif item.status == 'ready' %}<span class="chip sage"><i></i> Listo</span>
+        {% elif not item.menu_item.requires_kitchen %}<span class="chip"><i></i> Mesero</span>
         {% else %}<span class="chip berry"><i></i> Entregado</span>{% endif %}
     </div>
     <div class="price">${{ item.subtotal }}</div>

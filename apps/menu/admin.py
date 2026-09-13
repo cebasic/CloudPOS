@@ -10,5 +10,6 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "price", "available"]
-    list_filter = ["category", "available"]
+    list_display = ["name", "category", "price", "available", "requires_kitchen"]
+    list_filter = ["category", "available", "requires_kitchen"]
+    list_editable = ["available", "requires_kitchen"]

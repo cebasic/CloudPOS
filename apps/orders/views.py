@@ -221,17 +221,31 @@ def order_add_item(request, pk):
     form = OrderItemForm(request.POST)
     keep_cat = (request.POST.get("keep_cat") or "").strip()
     if form.is_valid():
+        menu_item = form.cleaned_data["menu_item"]
+        initial_status = (
+            OrderItem.Status.DELIVERED
+            if not menu_item.requires_kitchen
+            else OrderItem.Status.PENDING
+        )
         OrderItem.objects.create(
             order=order,
-            menu_item=form.cleaned_data["menu_item"],
+            menu_item=menu_item,
             quantity=form.cleaned_data["quantity"],
             notes=form.cleaned_data["notes"],
+            status=initial_status,
         )
-        if order.status == "pending":
+        if order.status == "pending" and menu_item.requires_kitchen:
             order.status = "in_progress"
             order.save(update_fields=["status"])
-        _notify_kitchen(order)
-        messages.success(request, "Item agregado a la orden.")
+        order.sync_status()
+        if menu_item.requires_kitchen:
+            _notify_kitchen(order)
+        messages.success(
+            request,
+            "Item agregado a la orden."
+            if menu_item.requires_kitchen
+            else f"{menu_item.name} agregado (lo sirve el mesero, no va a cocina).",
+        )
     url = reverse("orders:detail", kwargs={"pk": pk})
     if keep_cat:
         url = f"{url}?cat={keep_cat}"
