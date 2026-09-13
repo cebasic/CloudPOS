@@ -33,8 +33,10 @@
                 Cobrado
             </div>
             <p class="muted" style="font-size:12px;margin-top:8px">
-                {% if ticket.show_table %}Mesa {{ order.table.number }}{% endif %}{% if ticket.show_table and ticket.show_datetime %} · {% endif %}{% if ticket.show_datetime %}{{ order.created_at|date:"d M Y" }}{% endif %}
+                {% if ticket.show_table %}{{ order.display_label }}{% endif %}{% if ticket.show_table and ticket.show_datetime %} · {% endif %}{% if ticket.show_datetime %}{{ order.created_at|date:"d M Y" }}{% endif %}
             </p>
+            {% if order.customer_phone %}<p class="muted" style="font-size:11.5px">Tel. {{ order.customer_phone }}</p>{% endif %}
+            {% if order.order_type == 'delivery' and order.delivery_address %}<p class="muted" style="font-size:11.5px">{{ order.delivery_address }}</p>{% endif %}
         </div>
 
         {# Items #}
@@ -49,6 +51,9 @@
             <div class="sline"><span>Subtotal</span><span class="v">${{ order.subtotal }}</span></div>
             {% if order.discount_amount %}
             <div class="sline" style="color:var(--sage-2)"><span>Descuento</span><span class="v" style="color:var(--sage-2)">−${{ order.discount_amount }}</span></div>
+            {% endif %}
+            {% if order.delivery_fee %}
+            <div class="sline"><span>Envío</span><span class="v">${{ order.delivery_fee }}</span></div>
             {% endif %}
             {% if order.payment.tip %}
             <div class="sline"><span>Propina</span><span class="v">${{ order.payment.tip }}</span></div>

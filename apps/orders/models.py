@@ -16,8 +16,40 @@ class Order(models.Model):
         PERCENTAGE = "percentage", "Porcentaje"
         FIXED = "fixed", "Monto fijo"
 
-    table = models.ForeignKey("tables.Table", on_delete=models.CASCADE, related_name="orders", verbose_name="Mesa")
-    waiter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders", verbose_name="Mesero")
+    class OrderType(models.TextChoices):
+        DINE_IN = "dine_in", "Mesa"
+        PICKUP = "pickup", "Para recoger"
+        DELIVERY = "delivery", "Domicilio"
+
+    table = models.ForeignKey(
+        "tables.Table",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+        verbose_name="Mesa",
+    )
+    waiter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        verbose_name="Mesero",
+    )
+    order_type = models.CharField(
+        max_length=20,
+        choices=OrderType.choices,
+        default=OrderType.DINE_IN,
+        verbose_name="Tipo",
+    )
+    customer_name = models.CharField("Nombre del cliente", max_length=120, blank=True)
+    customer_phone = models.CharField("Teléfono", max_length=30, blank=True)
+    delivery_address = models.TextField("Dirección / referencia", blank=True)
+    delivery_fee = models.DecimalField(
+        "Costo de envío",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -38,7 +70,23 @@ class Order(models.Model):
         verbose_name_plural = "Ordenes"
 
     def __str__(self):
-        return f"Orden #{self.pk} - Mesa {self.table.number}"
+        return f"Orden #{self.pk} - {self.display_label}"
+
+    @property
+    def is_togo(self):
+        return self.order_type in (self.OrderType.PICKUP, self.OrderType.DELIVERY)
+
+    @property
+    def display_label(self):
+        """Etiqueta corta para cocina, caja y listados."""
+        name = (self.customer_name or "").strip() or "Cliente"
+        if self.order_type == self.OrderType.PICKUP:
+            return f"Recoger · {name}"
+        if self.order_type == self.OrderType.DELIVERY:
+            return f"Domi · {name}"
+        if self.table_id:
+            return f"Mesa {self.table.number}"
+        return f"Orden #{self.pk}"
 
     @property
     def subtotal(self):
@@ -58,7 +106,8 @@ class Order(models.Model):
 
     @property
     def final_total(self):
-        return self.subtotal - self.discount_amount
+        fee = self.delivery_fee or 0
+        return self.subtotal - self.discount_amount + fee
 
     def sync_status(self):
         if self.status in (self.Status.CLOSED, self.Status.CANCELLED):

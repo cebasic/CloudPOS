@@ -23,6 +23,79 @@ class OrderForm(forms.ModelForm):
             self.fields["table"].queryset = Table.objects.all()
 
 
+class TakeoutOrderForm(forms.ModelForm):
+    """Alta rápida desde caja: recoger o domicilio."""
+
+    class Meta:
+        model = Order
+        fields = [
+            "order_type",
+            "customer_name",
+            "customer_phone",
+            "notes",
+            "delivery_address",
+            "delivery_fee",
+        ]
+        widgets = {
+            "order_type": forms.RadioSelect,
+            "customer_name": forms.TextInput(attrs={
+                "class": INPUT_CLASS, "placeholder": "Nombre del cliente", "autocomplete": "name",
+            }),
+            "customer_phone": forms.TextInput(attrs={
+                "class": INPUT_CLASS, "placeholder": "Teléfono", "autocomplete": "tel",
+            }),
+            "notes": forms.Textarea(attrs={
+                "class": INPUT_CLASS, "rows": 2, "placeholder": "Notas para cocina o del pedido...",
+            }),
+            "delivery_address": forms.Textarea(attrs={
+                "class": INPUT_CLASS, "rows": 2, "placeholder": "Calle, colonia, referencias...",
+            }),
+            "delivery_fee": forms.NumberInput(attrs={
+                "class": INPUT_CLASS, "step": "0.01", "min": "0", "placeholder": "0.00",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["order_type"].choices = [
+            (Order.OrderType.PICKUP, "Para recoger"),
+            (Order.OrderType.DELIVERY, "Domicilio"),
+        ]
+        self.fields["customer_name"].required = True
+        self.fields["customer_phone"].required = False
+        self.fields["notes"].required = False
+        self.fields["delivery_address"].required = False
+        self.fields["delivery_fee"].required = False
+        self.fields["delivery_fee"].localize = False
+        self.fields["delivery_fee"].widget.is_localized = False
+        if not self.is_bound and not self.initial.get("order_type"):
+            self.initial["order_type"] = Order.OrderType.PICKUP
+            self.initial["delivery_fee"] = 0
+
+    def clean_order_type(self):
+        value = self.cleaned_data["order_type"]
+        if value not in (Order.OrderType.PICKUP, Order.OrderType.DELIVERY):
+            raise forms.ValidationError("Selecciona Para recoger o Domicilio.")
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        order_type = cleaned.get("order_type")
+        if order_type == Order.OrderType.DELIVERY:
+            address = (cleaned.get("delivery_address") or "").strip()
+            if not address:
+                self.add_error("delivery_address", "La dirección es obligatoria para domicilio.")
+            fee = cleaned.get("delivery_fee")
+            if fee is None:
+                cleaned["delivery_fee"] = 0
+            elif fee < 0:
+                self.add_error("delivery_fee", "El costo de envío no puede ser negativo.")
+        else:
+            cleaned["delivery_address"] = ""
+            cleaned["delivery_fee"] = 0
+        return cleaned
+
+
 class OrderItemForm(forms.Form):
     menu_item = forms.ModelChoiceField(
         queryset=MenuItem.objects.filter(available=True),

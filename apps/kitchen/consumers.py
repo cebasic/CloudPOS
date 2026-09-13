@@ -33,7 +33,7 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                         "type": "waiter.notification",
                         "order_id": data.get("order_id"),
                         "table_number": table_number,
-                        "message": f"Mesa {table_number}: {item_name} está listo",
+                        "message": f"{table_number}: {item_name} está listo",
                     },
                 )
 
@@ -63,7 +63,9 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                 })
             result.append({
                 "id": order.pk,
-                "table_number": order.table.number,
+                "table_number": order.display_label,
+                "label": order.display_label,
+                "order_type": order.order_type,
                 "waiter": order.waiter.get_full_name() or order.waiter.username,
                 "status": order.status,
                 "status_display": order.get_status_display(),
@@ -82,7 +84,8 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                 item.status = status
                 item.save(update_fields=["status"])
                 item.order.sync_status()
-                return item.order.waiter_id, item.order.table.number, item.menu_item.name
+                label = item.order.display_label
+                return item.order.waiter_id, label, item.menu_item.name
         except OrderItem.DoesNotExist:
             pass
         return None, None, None

@@ -1,0 +1,71 @@
+{% extends request.htmx|yesno:"modal_base.html,page_form_base.html" %}
+{% load l10n %}
+{% block title %}Para llevar — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
+{% block page_title %}Para llevar{% endblock %}
+
+{% block form_title %}Para llevar{% endblock %}
+{% block form_subtitle %}Registra el pedido mientras atiendes la llamada o WhatsApp{% endblock %}
+
+{% block form_body %}
+<style>
+  /* Toggle sin JS: HTMX a veces no ejecuta scripts del modal */
+  #togo-form-root [data-delivery-only]{display:none}
+  #togo-form-root:has(input[name="order_type"][value="delivery"]:checked) [data-delivery-only]{display:block}
+</style>
+<div class="form-grid" id="togo-form-root">
+    <div class="fg">
+        <label>Tipo de pedido</label>
+        <div class="chip-pick accent" data-pick>
+            {% for value, label in form.fields.order_type.choices %}
+            <label class="{% if form.order_type.value|default:'pickup'|stringformat:'s' == value|stringformat:'s' %}on{% endif %}">
+                <input type="radio" name="order_type" value="{{ value }}"
+                       {% if form.order_type.value|default:'pickup'|stringformat:'s' == value|stringformat:'s' %}checked{% endif %}
+                       required>
+                {{ label }}
+            </label>
+            {% endfor %}
+        </div>
+        {% if form.order_type.errors %}<span class="err">{{ form.order_type.errors.0 }}</span>{% endif %}
+    </div>
+
+    <div class="form-grid cols-2">
+        <div class="fg">
+            <label for="{{ form.customer_name.id_for_label }}">Nombre</label>
+            {{ form.customer_name }}
+            {% if form.customer_name.errors %}<span class="err">{{ form.customer_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="fg">
+            <label for="{{ form.customer_phone.id_for_label }}">Teléfono</label>
+            {{ form.customer_phone }}
+            {% if form.customer_phone.errors %}<span class="err">{{ form.customer_phone.errors.0 }}</span>{% endif %}
+        </div>
+    </div>
+
+    <div class="fg" data-delivery-only>
+        <label for="{{ form.delivery_address.id_for_label }}">Dirección / referencia</label>
+        {{ form.delivery_address }}
+        {% if form.delivery_address.errors %}<span class="err">{{ form.delivery_address.errors.0 }}</span>{% endif %}
+    </div>
+
+    <div class="fg" data-delivery-only>
+        <label for="{{ form.delivery_fee.id_for_label }}">Costo de envío</label>
+        <div class="prefix-input">
+            <span class="pfx">$</span>
+            <input type="number" name="delivery_fee" step="0.01" min="0"
+                   value="{% if form.delivery_fee.value != None %}{{ form.delivery_fee.value|unlocalize }}{% else %}0{% endif %}"
+                   placeholder="0.00" id="{{ form.delivery_fee.id_for_label }}">
+        </div>
+        <p class="hint">Lo defines tú según zona o acuerdo con el cliente</p>
+        {% if form.delivery_fee.errors %}<span class="err">{{ form.delivery_fee.errors.0 }}</span>{% endif %}
+    </div>
+
+    <div class="fg">
+        <label for="{{ form.notes.id_for_label }}">Notas (opcional)</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<span class="err">{{ form.notes.errors.0 }}</span>{% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block form_note %}Luego agregas platillos; el cobro se hace en Caja cuando llegue el cliente o repartidor{% endblock %}
+{% block form_actions %}<button type="submit" class="btn primary">Abrir pedido</button>{% endblock %}

@@ -34,7 +34,7 @@ def kitchen_debug(request):
             })
         data.append({
             "id": order.pk,
-            "table": order.table.number,
+            "table": order.display_label,
             "order_status": order.status,
             "items": items,
         })

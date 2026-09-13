@@ -260,7 +260,7 @@
         return '<div class="kcard">' +
             '<div class="top">' +
             '<div>' +
-            '<div class="mesa">Mesa ' + esc(String(order.table_number)) + '<small>#' + esc(String(order.id)) + '</small></div>' +
+            '<div class="mesa">' + esc(String(order.label || order.table_number)) + '<small>#' + esc(String(order.id)) + '</small></div>' +
             '<div class="who">' + esc(order.waiter) + ' · ' + esc(order.created_at) + '</div>' +
             '</div>' +
             timerHtml +

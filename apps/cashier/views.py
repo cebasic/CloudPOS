@@ -6,6 +6,7 @@ from django.contrib import messages
 from apps.accounts.decorators import role_required
 from .models import CashSession, CashCut, Expense
 from .forms import OpenSessionForm, CashCutForm, ExpenseForm
+from apps.orders.models import Order
 
 _ROLES = ("admin", "manager", "cashier")
 
@@ -25,11 +26,21 @@ def dashboard(request):
         "opened_by", "closed_by"
     ).order_by("-opened_at")[:6]
     expenses = session.expenses.select_related("created_by").all() if session else []
+    togo_orders = (
+        Order.objects.filter(
+            order_type__in=[Order.OrderType.PICKUP, Order.OrderType.DELIVERY],
+            status__in=["pending", "in_progress", "ready", "delivered"],
+        )
+        .select_related("waiter")
+        .prefetch_related("items__menu_item")
+        .order_by("created_at")
+    )
     return render(request, "cashier/dashboard.html", {
         "session": session,
         "recent_cuts": recent_cuts,
         "recent_sessions": recent_sessions,
         "expenses": expenses,
+        "togo_orders": togo_orders,
     })
 
 
