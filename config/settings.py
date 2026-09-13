@@ -12,6 +12,13 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
+# Orígenes con esquema (necesario si entras por puerto no estándar, p.ej. :8080 detrás de nginx)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 INSTALLED_APPS = [
     "daphne",
     "django.contrib.admin",

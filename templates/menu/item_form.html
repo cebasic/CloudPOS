@@ -10,19 +10,52 @@
 {% block form_attrs %}enctype="multipart/form-data"{% endblock %}
 
 {% block form_body %}
-<div style="display:grid;grid-template-columns:180px 1fr;gap:18px" class="dish-form-grid">
-    <style>@media (max-width:640px){ .dish-form-grid{grid-template-columns:1fr !important} }</style>
-    <div class="fg">
+<div style="display:grid;grid-template-columns:200px 1fr;gap:18px" class="dish-form-grid">
+    <style>
+      @media (max-width:640px){ .dish-form-grid{grid-template-columns:1fr !important} }
+      .photo-editor .crop-stage{
+        aspect-ratio:16/10; border-radius:12px; overflow:hidden; position:relative;
+        border:1px dashed var(--hairline-2); touch-action:none; user-select:none;
+        background: repeating-linear-gradient(45deg, #F0E6D2 0 8px, #E9DCC0 8px 16px);
+        cursor:grab;
+      }
+      .photo-editor .crop-stage.is-dragging{cursor:grabbing}
+      .photo-editor .crop-stage img{
+        position:absolute; left:0; top:0; max-width:none; pointer-events:none;
+        will-change:transform;
+      }
+      .photo-editor .crop-stage .ph-label{
+        position:absolute; inset:0; display:grid; place-items:center;
+        background:rgba(255,253,249,0.85); font-family:var(--mono); font-size:11px; color:var(--ink-3);
+      }
+      .photo-editor .crop-tools{display:none; margin-top:8px; gap:8px; flex-direction:column}
+      .photo-editor.has-image .crop-tools{display:flex}
+      .photo-editor .crop-tools .zoom-row{display:flex; align-items:center; gap:8px}
+      .photo-editor .crop-tools input[type=range]{flex:1; accent-color:var(--terracotta)}
+      .photo-editor .crop-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+    </style>
+    <div class="fg photo-editor{% if form.instance.image %} has-image{% endif %}" id="photo-editor"
+         data-existing="{% if form.instance.image %}{{ form.instance.image.url }}{% endif %}">
         <label>Foto</label>
-        <label class="dish-photo" style="border:1px dashed var(--hairline-2); cursor:pointer; border-radius:12px" for="{{ form.image.id_for_label }}">
+        <div class="crop-stage" id="crop-stage" title="Arrastra para centrar">
             {% if form.instance.image %}
-            <img src="{{ form.instance.image.url }}" alt="{{ form.instance.name }}">
+            <img id="crop-img" src="{{ form.instance.image.url }}" alt="{{ form.instance.name }}" draggable="false">
             {% else %}
-            <span class="ph-label">📷 subir imagen</span>
+            <span class="ph-label" id="crop-placeholder">📷 subir imagen</span>
             {% endif %}
-        </label>
+        </div>
+        <div class="crop-tools" id="crop-tools">
+            <div class="zoom-row">
+                <span class="hint" style="margin:0;min-width:2.5em">Zoom</span>
+                <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom de la foto">
+            </div>
+            <button type="button" class="btn sm" id="crop-recenter">Centrar</button>
+        </div>
+        <div class="crop-actions">
+            <button type="button" class="btn sm" id="pick-photo">{% if form.instance.image %}Cambiar foto{% else %}Elegir foto{% endif %}</button>
+        </div>
         <div style="display:none">{{ form.image }}</div>
-        <p class="hint">PNG o JPG</p>
+        <p class="hint" id="crop-hint">{% if form.instance.image %}Arrastra para centrar · rueda o zoom para acercar{% else %}PNG o JPG{% endif %}</p>
         {% if form.image.errors %}<span class="err">{{ form.image.errors.0 }}</span>{% endif %}
     </div>
     <div class="form-grid">
@@ -70,17 +103,204 @@
 </div>
 <script>
 (function(){
+    var ASPECT = 16 / 10;
+    var OUT_W = 1280;
+    var OUT_H = Math.round(OUT_W / ASPECT);
+
+    var editor = document.getElementById('photo-editor');
+    var stage = document.getElementById('crop-stage');
     var input = document.getElementById('{{ form.image.id_for_label }}');
-    if (!input) return;
-    input.addEventListener('change', function(){
-        var box = document.querySelector('label[for="{{ form.image.id_for_label }}"]');
-        if (input.files && input.files[0] && box) {
-            var img = document.createElement('img');
-            img.src = URL.createObjectURL(input.files[0]);
-            box.innerHTML = '';
-            box.appendChild(img);
+    var pickBtn = document.getElementById('pick-photo');
+    var zoomEl = document.getElementById('crop-zoom');
+    var recenterBtn = document.getElementById('crop-recenter');
+    var hint = document.getElementById('crop-hint');
+    if (!editor || !stage || !input) return;
+
+    var form = editor.closest('form');
+    var img = document.getElementById('crop-img');
+    var state = { zoom: 1, x: 0, y: 0, base: 1, dirty: false, dragging: false, lastX: 0, lastY: 0 };
+
+    function stageSize(){
+        var r = stage.getBoundingClientRect();
+        return { w: Math.max(r.width, 1), h: Math.max(r.height, 1) };
+    }
+
+    function coverBase(iw, ih, sw, sh){
+        return Math.max(sw / iw, sh / ih);
+    }
+
+    function clampPan(){
+        if (!img || !img.naturalWidth) return;
+        var s = stageSize();
+        var scale = state.base * state.zoom;
+        var dw = img.naturalWidth * scale;
+        var dh = img.naturalHeight * scale;
+        var minX = s.w - dw;
+        var minY = s.h - dh;
+        state.x = Math.min(0, Math.max(minX, state.x));
+        state.y = Math.min(0, Math.max(minY, state.y));
+    }
+
+    function applyTransform(){
+        if (!img) return;
+        clampPan();
+        var scale = state.base * state.zoom;
+        img.style.width = (img.naturalWidth * scale) + 'px';
+        img.style.height = (img.naturalHeight * scale) + 'px';
+        img.style.transform = 'translate(' + state.x + 'px,' + state.y + 'px)';
+    }
+
+    function centerImage(){
+        if (!img || !img.naturalWidth) return;
+        var s = stageSize();
+        state.base = coverBase(img.naturalWidth, img.naturalHeight, s.w, s.h);
+        state.zoom = 1;
+        if (zoomEl) zoomEl.value = '1';
+        var scale = state.base;
+        state.x = (s.w - img.naturalWidth * scale) / 2;
+        state.y = (s.h - img.naturalHeight * scale) / 2;
+        applyTransform();
+    }
+
+    function setImage(src, markDirty){
+        var placeholder = document.getElementById('crop-placeholder');
+        if (placeholder) placeholder.remove();
+        if (!img) {
+            img = document.createElement('img');
+            img.id = 'crop-img';
+            img.draggable = false;
+            img.alt = 'Vista previa';
+            stage.appendChild(img);
         }
+        img.onload = function(){
+            centerImage();
+            editor.classList.add('has-image');
+            if (pickBtn) pickBtn.textContent = 'Cambiar foto';
+            if (hint) hint.textContent = 'Arrastra para centrar · rueda o zoom para acercar';
+            if (markDirty) state.dirty = true;
+        };
+        img.src = src;
+    }
+
+    function bakeToInput(){
+        if (!img || !img.naturalWidth || !state.dirty) return Promise.resolve(false);
+        var s = stageSize();
+        var scale = state.base * state.zoom;
+        var sx = -state.x / scale;
+        var sy = -state.y / scale;
+        var sw = s.w / scale;
+        var sh = s.h / scale;
+        var canvas = document.createElement('canvas');
+        canvas.width = OUT_W;
+        canvas.height = OUT_H;
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, OUT_W, OUT_H);
+        return new Promise(function(resolve){
+            canvas.toBlob(function(blob){
+                if (!blob) { resolve(false); return; }
+                var file = new File([blob], 'menu-crop.jpg', { type: 'image/jpeg' });
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                var clearBox = form && form.querySelector('input[name="' + input.name + '-clear"]');
+                if (clearBox) clearBox.checked = false;
+                resolve(true);
+            }, 'image/jpeg', 0.9);
+        });
+    }
+
+    if (pickBtn) {
+        pickBtn.addEventListener('click', function(){ input.click(); });
+    }
+
+    input.addEventListener('change', function(){
+        if (!input.files || !input.files[0]) return;
+        var url = URL.createObjectURL(input.files[0]);
+        setImage(url, true);
     });
+
+    if (recenterBtn) {
+        recenterBtn.addEventListener('click', function(){
+            centerImage();
+            state.dirty = true;
+        });
+    }
+
+    if (zoomEl) {
+        zoomEl.addEventListener('input', function(){
+            if (!img || !img.naturalWidth) return;
+            var s = stageSize();
+            var prev = state.base * state.zoom;
+            var cx = s.w / 2;
+            var cy = s.h / 2;
+            var imgCx = (cx - state.x) / prev;
+            var imgCy = (cy - state.y) / prev;
+            state.zoom = parseFloat(zoomEl.value) || 1;
+            var next = state.base * state.zoom;
+            state.x = cx - imgCx * next;
+            state.y = cy - imgCy * next;
+            state.dirty = true;
+            applyTransform();
+        });
+    }
+
+    stage.addEventListener('pointerdown', function(e){
+        if (!img || !editor.classList.contains('has-image')) {
+            input.click();
+            return;
+        }
+        state.dragging = true;
+        state.lastX = e.clientX;
+        state.lastY = e.clientY;
+        stage.classList.add('is-dragging');
+        stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener('pointermove', function(e){
+        if (!state.dragging) return;
+        state.x += e.clientX - state.lastX;
+        state.y += e.clientY - state.lastY;
+        state.lastX = e.clientX;
+        state.lastY = e.clientY;
+        state.dirty = true;
+        applyTransform();
+    });
+    function endDrag(e){
+        if (!state.dragging) return;
+        state.dragging = false;
+        stage.classList.remove('is-dragging');
+        try { stage.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+
+    stage.addEventListener('wheel', function(e){
+        if (!img || !img.naturalWidth) return;
+        e.preventDefault();
+        var next = Math.min(3, Math.max(1, state.zoom + (e.deltaY < 0 ? 0.08 : -0.08)));
+        if (zoomEl) zoomEl.value = String(next);
+        zoomEl && zoomEl.dispatchEvent(new Event('input'));
+    }, { passive: false });
+
+    if (form) {
+        form.addEventListener('submit', function(e){
+            if (!state.dirty) return;
+            e.preventDefault();
+            bakeToInput().then(function(){
+                state.dirty = false;
+                HTMLFormElement.prototype.submit.call(form);
+            });
+        });
+    }
+
+    // Imagen existente: encuadrar al abrir el modal
+    if (img && img.getAttribute('src')) {
+        if (img.complete && img.naturalWidth) centerImage();
+        else img.addEventListener('load', centerImage);
+        // Reajustar si el modal termina de layout
+        requestAnimationFrame(function(){ requestAnimationFrame(centerImage); });
+    }
 })();
 </script>
 {% endblock %}
