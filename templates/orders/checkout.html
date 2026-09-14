@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load l10n %}
 {% block title %}Cobrar orden #{{ order.pk }} — {{ business.name|default:"Cocos Barrancos" }}{% endblock %}
-{% block page_title %}Cobrar · Mesa {{ order.table.number }}{% endblock %}
+{% block page_title %}Cobrar · {{ order.display_label }}{% endblock %}
 
 {% block content %}
 <style>
@@ -36,7 +36,7 @@
 <div class="page-head">
     <div>
         <h1>Cobrar <em>#{{ order.pk }}</em></h1>
-        <p class="sub">Mesa {{ order.table.number }} · {{ order.waiter.get_full_name|default:order.waiter.username }}</p>
+        <p class="sub">{{ order.display_label }} · {{ order.waiter.get_full_name|default:order.waiter.username }}</p>
     </div>
 </div>
 
@@ -56,6 +56,9 @@
         <span>Descuento {% if order.discount_type == 'percentage' %}({{ order.discount_value }}%){% endif %}{% if order.discount_reason %} — {{ order.discount_reason }}{% endif %}</span>
         <span class="v" style="color:var(--sage-2)">−${{ order.discount_amount }}</span>
     </div>
+    {% endif %}
+    {% if order.delivery_fee %}
+    <div class="sline"><span>Envío</span><span class="v">${{ order.delivery_fee }}</span></div>
     {% endif %}
     <div class="stot"><span class="l">Total a cobrar</span><span class="v">${{ order_total }}</span></div>
     {% if user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}

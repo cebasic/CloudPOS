@@ -6,6 +6,7 @@ app_name = "orders"
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("create/", views.order_create, name="create"),
+    path("para-llevar/", views.order_create_togo, name="create_togo"),
     path("<int:pk>/", views.order_detail, name="detail"),
     path("<int:pk>/add-item/", views.order_add_item, name="add_item"),
     path("<int:pk>/remove-item/<int:item_pk>/", views.order_remove_item, name="remove_item"),

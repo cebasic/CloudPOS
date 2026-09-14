@@ -129,12 +129,12 @@
 {% if active_orders %}
 <div class="rail">
     {% for order in active_orders %}
-    <a id="order-{{ order.table.pk }}" href="{% url 'orders:detail' order.pk %}"
+    <a id="order-{{ order.pk }}" href="{% url 'orders:detail' order.pk %}"
        class="order {% if order.status == 'pending' %}s-pending{% elif order.status == 'in_progress' %}s-progress{% elif order.status == 'ready' %}s-ready{% else %}s-delivered{% endif %}">
         <span class="bar"></span>
         <div class="hd">
             <div>
-                <div class="mesa">Mesa {{ order.table.number }}<span class="oid">#{{ order.pk }}</span></div>
+                <div class="mesa">{{ order.display_label }}<span class="oid">#{{ order.pk }}</span></div>
                 <div class="waiter">{{ order.waiter.get_full_name|default:order.waiter.username }} · {{ order.created_at|naturaltime }}</div>
             </div>
             {% if order.status == 'pending' %}<span class="chip gold"><i></i> Pendiente</span>

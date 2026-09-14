@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
@@ -6,12 +7,30 @@ from django.contrib import messages
 from apps.accounts.decorators import role_required
 from .models import CashSession, CashCut, Expense
 from .forms import OpenSessionForm, CashCutForm, ExpenseForm
+from apps.orders.models import Order, Payment
 
 _ROLES = ("admin", "manager", "cashier")
 
 
 def _open_session():
     return CashSession.objects.filter(status="open").first()
+
+
+def _session_payments(session):
+    """Pagos de la sesión (misma ventana que el corte)."""
+    qs = Payment.objects.filter(created_at__gte=session.opened_at)
+    if session.closed_at:
+        qs = qs.filter(created_at__lte=session.closed_at)
+    return (
+        qs.select_related(
+            "order",
+            "order__table",
+            "order__waiter",
+            "collected_by",
+        )
+        .prefetch_related("order__items__menu_item")
+        .order_by("-created_at")
+    )
 
 
 @login_required
@@ -25,11 +44,23 @@ def dashboard(request):
         "opened_by", "closed_by"
     ).order_by("-opened_at")[:6]
     expenses = session.expenses.select_related("created_by").all() if session else []
+    togo_orders = (
+        Order.objects.filter(
+            order_type__in=[Order.OrderType.PICKUP, Order.OrderType.DELIVERY],
+            status__in=["pending", "in_progress", "ready", "delivered"],
+        )
+        .select_related("waiter")
+        .prefetch_related("items__menu_item")
+        .order_by("created_at")
+    )
+    recent_tickets = list(_session_payments(session)[:6]) if session else []
     return render(request, "cashier/dashboard.html", {
         "session": session,
         "recent_cuts": recent_cuts,
         "recent_sessions": recent_sessions,
         "expenses": expenses,
+        "togo_orders": togo_orders,
+        "recent_tickets": recent_tickets,
     })
 
 
@@ -160,4 +191,41 @@ def history(request):
     return render(request, "cashier/history.html", {
         "cuts": cuts,
         "sessions": sessions,
+    })
+
+
+@login_required
+@role_required(*_ROLES)
+def tickets(request):
+    """Historial de tickets cobrados para reimprimir (sesión actual o elegida)."""
+    sessions = list(
+        CashSession.objects.select_related("opened_by").order_by("-opened_at")[:20]
+    )
+    open_session = _open_session()
+    session_id = request.GET.get("session")
+    session = None
+    if session_id:
+        session = get_object_or_404(CashSession, pk=session_id)
+    elif open_session:
+        session = open_session
+    elif sessions:
+        session = sessions[0]
+
+    payments = _session_payments(session) if session else Payment.objects.none()
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        filt = (
+            Q(order__customer_name__icontains=q)
+            | Q(order__customer_phone__icontains=q)
+        )
+        if q.isdigit():
+            filt = filt | Q(order_id=int(q)) | Q(order__table__number=int(q))
+        payments = payments.filter(filt)
+
+    return render(request, "cashier/tickets.html", {
+        "session": session,
+        "sessions": sessions,
+        "payments": payments,
+        "q": q,
+        "open_session": open_session,
     })

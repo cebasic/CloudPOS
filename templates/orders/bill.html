@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cuenta · Mesa {{ order.table.number }} · #{{ order.pk }}</title>
+<title>Cuenta · {{ order.display_label }} · #{{ order.pk }}</title>
 <style>
   :root{ --w: {% if ticket.paper_width == '58' %}220px{% else %}300px{% endif %}; }
   *{box-sizing:border-box}
@@ -53,8 +53,10 @@
     </div>
 
     <hr class="rule">
-    <div class="row"><span>Cuenta #{{ order.pk }}</span><span>Mesa {{ order.table.number }}</span></div>
+    <div class="row"><span>Cuenta #{{ order.pk }}</span><span>{{ order.display_label }}</span></div>
     <div class="meta">{{ order.created_at|date:"d M Y · H:i" }} · {{ order.waiter.get_full_name|default:order.waiter.username }}</div>
+    {% if order.customer_phone %}<div class="meta">Tel. {{ order.customer_phone }}</div>{% endif %}
+    {% if order.order_type == 'delivery' and order.delivery_address %}<div class="meta">{{ order.delivery_address }}</div>{% endif %}
 
     <hr class="rule">
     {% for item in order.items.all %}
@@ -68,9 +70,12 @@
     {% if order.discount_amount %}
     <div class="row"><span>Descuento{% if order.discount_reason %} · {{ order.discount_reason }}{% endif %}</span><span>−${{ order.discount_amount }}</span></div>
     {% endif %}
-    <div class="tot"><span class="l">Total</span><span class="v">${{ order.total }}</span></div>
+    {% if order.delivery_fee %}
+    <div class="row"><span>Envío</span><span>${{ order.delivery_fee }}</span></div>
+    {% endif %}
+    <div class="tot"><span class="l">Total</span><span class="v">${{ order.final_total }}</span></div>
 
-    <div class="tips">Propina sugerida — 10%: ${% widthratio order.total 100 10 %} · 15%: ${% widthratio order.total 100 15 %} · 20%: ${% widthratio order.total 100 20 %}</div>
+    <div class="tips">Propina sugerida — 10%: ${% widthratio order.final_total 100 10 %} · 15%: ${% widthratio order.final_total 100 15 %} · 20%: ${% widthratio order.final_total 100 20 %}</div>
 
     <hr class="rule">
     {% if ticket.footer_message %}<div class="foot">{{ ticket.footer_message }}</div>{% endif %}

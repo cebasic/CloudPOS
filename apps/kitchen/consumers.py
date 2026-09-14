@@ -33,7 +33,7 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                         "type": "waiter.notification",
                         "order_id": data.get("order_id"),
                         "table_number": table_number,
-                        "message": f"Mesa {table_number}: {item_name} está listo",
+                        "message": f"{table_number}: {item_name} está listo",
                     },
                 )
 
@@ -52,7 +52,9 @@ class KitchenConsumer(AsyncWebsocketConsumer):
         result = []
         for order in orders:
             items = []
-            for item in order.items.all():
+            for item in order.items.select_related("menu_item").all():
+                if not item.menu_item.requires_kitchen:
+                    continue
                 items.append({
                     "id": item.pk,
                     "name": item.menu_item.name,
@@ -61,9 +63,13 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                     "status": item.status,
                     "status_display": item.get_status_display(),
                 })
+            if not items:
+                continue
             result.append({
                 "id": order.pk,
-                "table_number": order.table.number,
+                "table_number": order.display_label,
+                "label": order.display_label,
+                "order_type": order.order_type,
                 "waiter": order.waiter.get_full_name() or order.waiter.username,
                 "status": order.status,
                 "status_display": order.get_status_display(),
@@ -73,7 +79,6 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                 "items": items,
             })
         return result
-
     @database_sync_to_async
     def update_item_status(self, item_id, status):
         try:
@@ -82,7 +87,8 @@ class KitchenConsumer(AsyncWebsocketConsumer):
                 item.status = status
                 item.save(update_fields=["status"])
                 item.order.sync_status()
-                return item.order.waiter_id, item.order.table.number, item.menu_item.name
+                label = item.order.display_label
+                return item.order.waiter_id, label, item.menu_item.name
         except OrderItem.DoesNotExist:
             pass
         return None, None, None

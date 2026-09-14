@@ -25,6 +25,8 @@ def kitchen_debug(request):
     for order in orders:
         items = []
         for item in order.items.all():
+            if not item.menu_item.requires_kitchen:
+                continue
             items.append({
                 "id": item.pk,
                 "name": item.menu_item.name,
@@ -32,9 +34,11 @@ def kitchen_debug(request):
                 "notes": item.notes,
                 "status": item.status,
             })
+        if not items:
+            continue
         data.append({
             "id": order.pk,
-            "table": order.table.number,
+            "table": order.display_label,
             "order_status": order.status,
             "items": items,
         })

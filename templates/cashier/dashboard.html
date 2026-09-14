@@ -17,12 +17,21 @@
     </div>
     <div class="right">
         {% if session %}
+        <a href="{% url 'orders:create_togo' %}" class="btn primary"
+           hx-get="{% url 'orders:create_togo' %}" hx-target="#modal-root" hx-swap="innerHTML">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
+            Para llevar
+        </a>
+        <a href="{% url 'cashier:tickets' %}" class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+            Tickets
+        </a>
         <a href="{% url 'cashier:expense_create' %}" class="btn"
            hx-get="{% url 'cashier:expense_create' %}" hx-target="#modal-root" hx-swap="innerHTML">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>
             Registrar gasto
         </a>
-        <a href="{% url 'cashier:cash_cut' %}" class="btn primary"
+        <a href="{% url 'cashier:cash_cut' %}" class="btn"
            hx-get="{% url 'cashier:cash_cut' %}" hx-target="#modal-root" hx-swap="innerHTML">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M6 9l6 6 6-6"/></svg>
             Hacer corte
@@ -38,6 +47,77 @@
 </div>
 
 {% if session %}
+
+{# Tablero para llevar — seguimiento hasta cobro al llegar cliente/repartidor #}
+<div class="rail-head" style="margin-top:0">
+    <h2>Para <em>llevar</em></h2>
+    <div class="legend">
+        <span><i style="background:var(--marigold)"></i> Pendiente</span>
+        <span><i style="background:var(--ocean)"></i> En cocina</span>
+        <span><i style="background:var(--sage)"></i> Listo · cobrar</span>
+        <span><i style="background:var(--berry)"></i> Entregado</span>
+    </div>
+</div>
+{% if togo_orders %}
+<div class="rail" style="margin-bottom:22px">
+    {% for order in togo_orders %}
+    <div class="order {% if order.status == 'pending' %}s-pending{% elif order.status == 'in_progress' %}s-progress{% elif order.status == 'ready' %}s-ready{% else %}s-delivered{% endif %}">
+        <span class="bar"></span>
+        <div class="hd">
+            <div>
+                <div class="mesa">{{ order.display_label }}<span class="oid">#{{ order.pk }}</span></div>
+                <div class="waiter">
+                    {{ order.get_order_type_display }}
+                    {% if order.customer_phone %} · {{ order.customer_phone }}{% endif %}
+                    · {{ order.created_at|time:"H:i" }}
+                </div>
+            </div>
+            {% if order.status == 'pending' %}<span class="chip gold"><i></i> Pendiente</span>
+            {% elif order.status == 'in_progress' %}<span class="chip ocean"><i></i> En cocina</span>
+            {% elif order.status == 'ready' %}<span class="chip sage"><i></i> Listo</span>
+            {% else %}<span class="chip berry"><i></i> Entregado</span>{% endif %}
+        </div>
+        {% if order.order_type == 'delivery' and order.delivery_address %}
+        <div class="it muted" style="margin-bottom:8px">{{ order.delivery_address }}{% if order.delivery_fee %} · Envío ${{ order.delivery_fee }}{% endif %}</div>
+        {% endif %}
+        <div class="items">
+            {% for item in order.items.all|slice:":4" %}
+            <div class="it">
+                <span><span class="q">{{ item.quantity }}×</span>{{ item.menu_item.name }}</span>
+                {% if item.status == 'pending' %}<span class="chip gold">Pendiente</span>
+                {% elif item.status == 'preparing' %}<span class="chip ocean">Preparando</span>
+                {% elif item.status == 'ready' %}<span class="chip sage">Listo</span>
+                {% else %}<span class="chip berry">Entregado</span>{% endif %}
+            </div>
+            {% empty %}
+            <div class="it muted">Sin platillos aún…</div>
+            {% endfor %}
+            {% if order.items.count > 4 %}
+            <div class="it muted">+{{ order.items.count|add:"-4" }} más…</div>
+            {% endif %}
+        </div>
+        <div class="ft">
+            <span class="t">
+                <a href="{% url 'orders:detail' order.pk %}" class="btn sm">Ver / editar</a>
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:10px">
+                <span class="tot">${{ order.final_total }}</span>
+                {% if order.status == 'ready' or order.status == 'delivered' %}
+                <a href="{% url 'orders:checkout' order.pk %}" class="btn primary sm">Cobrar</a>
+                {% elif order.items.exists %}
+                <a href="{% url 'orders:checkout' order.pk %}" class="btn sm" title="Cobrar aunque aún esté en cocina">Cobrar</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="margin-bottom:22px;padding:28px 20px;text-align:center">
+    <p class="muted" style="margin:0;font-size:13.5px">No hay pedidos para llevar activos. Usa <b>Para llevar</b> arriba cuando entre una llamada o WhatsApp.</p>
+</div>
+{% endif %}
+
 <div class="cash-grid">
     <div>
         {# Sesión activa #}
@@ -51,6 +131,31 @@
                 <div><b>${{ session.total_tips|floatformat:2 }}</b>Propinas</div>
                 <div><b>${{ session.total_expenses|floatformat:2 }}</b>Gastos</div>
                 <div><b>{{ session.order_count }}</b>Órdenes</div>
+            </div>
+        </div>
+
+        {# Tickets recientes de la sesión #}
+        <div class="card" style="margin-top:16px">
+            <div class="card-head">
+                <h2>Tickets <em>de la noche</em></h2>
+                <a href="{% url 'cashier:tickets' %}" class="meta" style="color:var(--terracotta-2)">Ver todos →</a>
+            </div>
+            <div class="list">
+                {% for p in recent_tickets %}
+                <div class="item">
+                    <div class="num">#{{ p.order_id }}</div>
+                    <div>
+                        <div class="ttl">{{ p.order.display_label }}</div>
+                        <div class="sub">{{ p.created_at|date:"H:i" }} · {{ p.get_method_display }}</div>
+                    </div>
+                    <div class="right" style="display:flex;align-items:center;gap:8px">
+                        <div class="amount">${{ p.grand_total }}</div>
+                        <a class="btn sm" href="{% url 'orders:receipt' p.order_id %}?next={% url 'cashier:tickets' %}" target="_blank" rel="noopener">Reimprimir</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="padding:22px 18px;text-align:center" class="muted">Aún no hay cobros en esta sesión.</p>
+                {% endfor %}
             </div>
         </div>
 

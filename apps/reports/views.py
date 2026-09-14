@@ -153,19 +153,22 @@ def report_export_csv(request):
     response.write("﻿")  # BOM for Excel
 
     writer = csv.writer(response)
-    writer.writerow(["Orden", "Mesa", "Mesero", "Fecha", "Hora", "Estado", "Método Pago", "Subtotal", "Descuento", "Total", "Propina"])
+    writer.writerow(["Orden", "Tipo", "Ubicación", "Cliente", "Mesero", "Fecha", "Hora", "Estado", "Método Pago", "Subtotal", "Envío", "Descuento", "Total", "Propina"])
 
     for order in orders:
         pmt = order.payment if hasattr(order, "payment") else None
         writer.writerow([
             order.pk,
-            order.table.number,
+            order.get_order_type_display(),
+            order.display_label,
+            order.customer_name or "",
             order.waiter.get_full_name() or order.waiter.username,
             order.created_at.strftime("%Y-%m-%d"),
             order.created_at.strftime("%H:%M"),
             order.get_status_display(),
             pmt.get_method_display() if pmt else "-",
             order.subtotal,
+            order.delivery_fee,
             order.discount_amount,
             order.final_total,
             pmt.tip if pmt else 0,

@@ -101,8 +101,15 @@
 <div class="od-head">
     <div class="page-head">
         <div>
-            <h1>Orden <em>#{{ order.pk }}</em> · Mesa {{ order.table.number }}</h1>
-            <p class="sub">{{ order.waiter.get_full_name|default:order.waiter.username }} · Abierta {{ order.created_at|time:"H:i" }}{% if order.notes %} · con notas{% endif %}</p>
+            <h1>Orden <em>#{{ order.pk }}</em> · {{ order.display_label }}</h1>
+            <p class="sub">
+                {{ order.waiter.get_full_name|default:order.waiter.username }} · Abierta {{ order.created_at|time:"H:i" }}
+                {% if order.customer_phone %} · {{ order.customer_phone }}{% endif %}
+                {% if order.notes %} · con notas{% endif %}
+            </p>
+            {% if order.order_type == 'delivery' and order.delivery_address %}
+            <p class="sub" style="margin-top:4px">{{ order.delivery_address }}{% if order.delivery_fee %} · Envío ${{ order.delivery_fee }}{% endif %}</p>
+            {% endif %}
         </div>
         <div class="right">
             {% if order.status != 'closed' and order.status != 'cancelled' %}
@@ -116,10 +123,21 @@
                 </form>
                 {% endif %}
                 {% if order.status == 'delivered' or order.status == 'ready' or order.status == 'in_progress' %}
+                  {% if order.is_togo %}
+                  {% if order.status == 'ready' or order.status == 'delivered' %}
                 <a href="{% url 'orders:checkout' order.pk %}" class="cta primary">
                     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M7 6V4h10v2"/></svg>
-                    Cobrar — ${{ order.total }}
+                    Cobrar — ${{ order.final_total }}
                 </a>
+                  {% else %}
+                <span class="btn sm" style="opacity:.7;cursor:default" title="Se cobra en Caja cuando llegue el cliente o repartidor">En cocina · ${{ order.final_total }}</span>
+                  {% endif %}
+                  {% else %}
+                <a href="{% url 'orders:checkout' order.pk %}" class="cta primary">
+                    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M7 6V4h10v2"/></svg>
+                    Cobrar — ${{ order.final_total }}
+                </a>
+                  {% endif %}
                 {% endif %}
             {% endif %}
             {% if order.status == 'closed' %}
@@ -152,12 +170,15 @@
     {# Resumen #}
     <div class="summary od-summary">
         <h3>Resumen</h3>
-        <p class="sub">{{ order.items.count }} item{{ order.items.count|pluralize }} · Mesa {{ order.table.number }}</p>
+        <p class="sub">{{ order.items.count }} item{{ order.items.count|pluralize }} · {{ order.display_label }}</p>
         <div class="sline"><span>Subtotal</span><span class="v">${{ order.subtotal }}</span></div>
         {% if order.discount_amount %}
         <div class="sline"><span>Descuento{% if order.discount_reason %} · {{ order.discount_reason }}{% endif %}</span><span class="v">−${{ order.discount_amount }}</span></div>
         {% endif %}
-        <div class="stot"><span class="l">Total</span><span class="v">${{ order.total }}<span style="font-family:var(--sans);font-size:13px;color:var(--ink-3);margin-left:6px">MXN</span></span></div>
+        {% if order.delivery_fee %}
+        <div class="sline"><span>Envío</span><span class="v">${{ order.delivery_fee }}</span></div>
+        {% endif %}
+        <div class="stot"><span class="l">Total</span><span class="v">${{ order.final_total }}<span style="font-family:var(--sans);font-size:13px;color:var(--ink-3);margin-left:6px">MXN</span></span></div>
         {% if order.status != 'closed' and order.status != 'cancelled' %}
         {% if user.role == 'admin' or user.role == 'manager' or user.role == 'cashier' %}
         <a href="{% url 'orders:apply_discount' order.pk %}" class="btn ghost sm" style="margin-top:10px"
@@ -196,9 +217,10 @@
             {% endfor %}
         </div>
 
-        <form method="post" action="{% url 'orders:add_item' order.pk %}" class="form-grid" style="margin-top:14px">
+        <form method="post" action="{% url 'orders:add_item' order.pk %}" class="form-grid" style="margin-top:14px" id="add-item-form">
             {% csrf_token %}
             <input type="hidden" name="menu_item" id="menu-item-input" required>
+            <input type="hidden" name="keep_cat" id="keep-cat-input" value="all">
             <div class="form-grid cols-2">
                 <div class="fg">
                     <label>Cantidad</label>
@@ -221,10 +243,17 @@
     </div>
     {% endif %}
 
+    {% if order.is_togo %}
+    <a href="{% url 'cashier:dashboard' %}" class="btn ghost od-back">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+        Volver a Caja
+    </a>
+    {% else %}
     <a href="{% url 'orders:dashboard' %}" class="btn ghost od-back">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
         Volver al Restaurant
     </a>
+    {% endif %}
 </div>
 
 {# Modal de cancelar orden (estilo del sistema) #}
@@ -234,7 +263,7 @@
         <div class="modal-head">
             <div>
                 <h3>Cancelar orden</h3>
-                <div class="ms">Mesa {{ order.table.number }} · #{{ order.pk }}</div>
+                <div class="ms">{{ order.display_label }} · #{{ order.pk }}</div>
             </div>
             <button type="button" class="modal-close" onclick="closeCancelModal()" title="Cerrar">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
@@ -242,10 +271,10 @@
         </div>
         <div class="modal-body">
             <p style="font-size:14px;color:var(--ink-2);line-height:1.5">¿Seguro que deseas cancelar esta orden?<br><br>
-                Se liberará la mesa y <b>no se podrá deshacer</b>.</p>
+                {% if order.table_id %}Se liberará la mesa y {% endif %}<b>no se podrá deshacer</b>.</p>
         </div>
         <div class="modal-foot">
-            <span class="left">Mesa {{ order.table.number }}</span>
+            <span class="left">{{ order.display_label }}</span>
             <div class="acts">
                 <button type="button" class="btn" onclick="closeCancelModal()">No, volver</button>
                 <form method="post" action="{% url 'orders:update_status' order.pk %}" style="display:inline">
@@ -273,32 +302,48 @@ function closeCancelModal(){ document.getElementById('cancel-backdrop').classLis
 (function(){
     var box = document.getElementById('add-box');
     if (!box) return;
+    var ORDER_ID = {{ order.pk }};
+    var CAT_KEY = 'order-add-cat-' + ORDER_ID;
+    var SCROLL_KEY = 'order-add-scroll-' + ORDER_ID;
     var search = document.getElementById('item-search');
     var cats   = box.querySelectorAll('.pk-cat');
     var cards  = box.querySelectorAll('.pk-card');
+    var grid   = box.querySelector('.pk-grid');
     var hidden = document.getElementById('menu-item-input');
+    var keepCat = document.getElementById('keep-cat-input');
     var submit = document.getElementById('add-submit');
     var label  = document.getElementById('add-submit-label');
     var activeCat = 'all';
+    try {
+        var saved = sessionStorage.getItem(CAT_KEY);
+        if (saved) activeCat = saved;
+    } catch (err) {}
+    // Preferir ?cat= de la URL (POST redirect)
+    var params = new URLSearchParams(location.search);
+    if (params.get('cat')) activeCat = params.get('cat');
 
     function applyFilter(){
         var q = (search && search.value || '').toLowerCase().trim();
         cards.forEach(function(c){
             var matchCat = (activeCat === 'all' || c.dataset.cat === activeCat);
             var matchQ   = (!q || c.dataset.search.indexOf(q) !== -1);
-            // Al buscar, ignora la categoría activa (busca en todo)
             c.style.display = (q ? matchQ : matchCat) ? '' : 'none';
         });
+        if (keepCat) keepCat.value = activeCat;
+    }
+
+    function setActiveCat(catId){
+        activeCat = catId || 'all';
+        cats.forEach(function(x){
+            x.classList.toggle('on', x.dataset.cat === activeCat);
+        });
+        try { sessionStorage.setItem(CAT_KEY, activeCat); } catch (err) {}
+        if (search) search.value = '';
+        applyFilter();
     }
 
     cats.forEach(function(ch){
-        ch.addEventListener('click', function(){
-            cats.forEach(function(x){ x.classList.remove('on'); });
-            ch.classList.add('on');
-            activeCat = ch.dataset.cat;
-            if (search) search.value = '';
-            applyFilter();
-        });
+        ch.addEventListener('click', function(){ setActiveCat(ch.dataset.cat); });
     });
 
     cards.forEach(function(cd){
@@ -312,7 +357,29 @@ function closeCancelModal(){ document.getElementById('cancel-backdrop').classLis
     });
 
     if (search) search.addEventListener('input', applyFilter);
-    applyFilter();
+
+    if (grid) {
+        try {
+            var sy = parseInt(sessionStorage.getItem(SCROLL_KEY) || '0', 10);
+            if (sy) grid.scrollTop = sy;
+        } catch (err) {}
+        grid.addEventListener('scroll', function(){
+            try { sessionStorage.setItem(SCROLL_KEY, String(grid.scrollTop)); } catch (err) {}
+        }, {passive: true});
+    }
+
+    var form = document.getElementById('add-item-form');
+    if (form) {
+        form.addEventListener('submit', function(){
+            if (keepCat) keepCat.value = activeCat;
+            try {
+                sessionStorage.setItem(CAT_KEY, activeCat);
+                if (grid) sessionStorage.setItem(SCROLL_KEY, String(grid.scrollTop));
+            } catch (err) {}
+        });
+    }
+
+    setActiveCat(activeCat);
 })();
 </script>
 

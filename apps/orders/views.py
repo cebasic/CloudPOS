@@ -2,11 +2,12 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.urls import reverse
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 from apps.accounts.decorators import role_required
-from .forms import OrderForm, OrderItemForm, PaymentForm, DiscountForm
+from .forms import OrderForm, OrderItemForm, PaymentForm, DiscountForm, TakeoutOrderForm
 from .models import Order, OrderItem, Payment
 from apps.tables.models import Table
 from apps.cashier.models import CashSession
@@ -14,6 +15,17 @@ from apps.cashier.models import CashSession
 
 def _cash_session_open():
     return CashSession.objects.filter(status="open").exists()
+
+
+def _release_table_if_idle(order):
+    if not order.table_id:
+        return
+    has_active = Order.objects.filter(
+        table_id=order.table_id,
+        status__in=["pending", "in_progress", "ready", "delivered"],
+    ).exclude(pk=order.pk).exists()
+    if not has_active and order.table_id:
+        Table.objects.filter(pk=order.table_id).update(status="available")
 
 
 def _notify_kitchen(order):
@@ -32,31 +44,43 @@ def _notify_waiter(order, message=None):
     try:
         channel_layer = get_channel_layer()
         if channel_layer:
+            label = order.display_label
             async_to_sync(channel_layer.group_send)(
                 f"waiter_{order.waiter_id}",
                 {
                     "type": "waiter.notification",
                     "order_id": order.pk,
-                    "table_number": order.table.number,
+                    "table_number": label,
                     "message": message or f"Orden #{order.pk} actualizada",
                 },
             )
+            if order.is_togo:
+                async_to_sync(channel_layer.group_send)(
+                    "cashier_station",
+                    {
+                        "type": "bill.request",
+                        "order_id": order.pk,
+                        "table_number": label,
+                        "message": message or f"{label}: platillo listo",
+                    },
+                )
     except Exception:
         pass
 
 
 def _notify_cashier_bill(order):
-    """Avisa a la(s) estación(es) de caja que una mesa pidió su cuenta."""
+    """Avisa a la(s) estación(es) de caja que una orden pidió su cuenta."""
     try:
         channel_layer = get_channel_layer()
         if channel_layer:
+            label = order.display_label
             async_to_sync(channel_layer.group_send)(
                 "cashier_station",
                 {
                     "type": "bill.request",
                     "order_id": order.pk,
-                    "table_number": order.table.number,
-                    "message": f"Mesa {order.table.number} solicitó su cuenta",
+                    "table_number": label,
+                    "message": f"{label} solicitó su cuenta",
                 },
             )
     except Exception:
@@ -72,7 +96,7 @@ def order_request_bill(request, pk):
         messages.error(request, "Esta orden ya no está activa.")
         return redirect("orders:detail", pk=pk)
     _notify_cashier_bill(order)
-    messages.success(request, f"Cuenta de la mesa {order.table.number} enviada a caja.")
+    messages.success(request, f"Cuenta de {order.display_label} enviada a caja.")
     return redirect("orders:detail", pk=pk)
 
 
@@ -93,6 +117,9 @@ def dashboard(request):
     active_orders = Order.objects.filter(
         status__in=["pending", "in_progress", "ready", "delivered"]
     ).select_related("table", "waiter").prefetch_related("items__menu_item")
+    # Meseros solo ven mesas; para llevar es de caja
+    if request.user.role == "waiter":
+        active_orders = active_orders.filter(order_type=Order.OrderType.DINE_IN)
     tables = Table.objects.all()
     return render(request, "orders/dashboard.html", {
         "active_orders": active_orders,
@@ -101,7 +128,15 @@ def dashboard(request):
         "available_count": tables.filter(status="available").count(),
         "ready_count": active_orders.filter(status="ready").count(),
         "cash_session_open": _cash_session_open(),
+        "can_create_togo": request.user.role in ("admin", "manager", "cashier"),
     })
+
+
+def _waiter_blocked_from_togo(request, order):
+    if order.is_togo and getattr(request.user, "role", None) == "waiter":
+        messages.error(request, "Los pedidos para llevar los atiende caja.")
+        return True
+    return False
 
 
 @login_required
@@ -120,6 +155,7 @@ def order_create(request):
     if request.method == "POST" and form.is_valid():
         order = form.save(commit=False)
         order.waiter = request.user
+        order.order_type = Order.OrderType.DINE_IN
         order.save()
         order.table.status = "occupied"
         order.table.save(update_fields=["status"])
@@ -129,12 +165,36 @@ def order_create(request):
 
 
 @login_required
+@role_required("admin", "manager", "cashier")
+def order_create_togo(request):
+    """Para llevar / domicilio — solo caja, admin y gerente."""
+    if not _cash_session_open():
+        messages.error(request, "No se puede crear un pedido para llevar: la caja no está abierta.")
+        return redirect("cashier:dashboard")
+
+    form = TakeoutOrderForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        order = form.save(commit=False)
+        order.waiter = request.user
+        order.table = None
+        order.save()
+        messages.success(request, f"Pedido #{order.pk} · {order.display_label} creado.")
+        return redirect("orders:detail", pk=order.pk)
+    return render(request, "orders/togo_form.html", {
+        "form": form,
+        "title": "Para llevar",
+    })
+
+
+@login_required
 @role_required("admin", "manager", "waiter", "cashier")
 def order_detail(request, pk):
     order = get_object_or_404(
         Order.objects.select_related("table", "waiter").prefetch_related("items__menu_item"),
         pk=pk,
     )
+    if _waiter_blocked_from_togo(request, order):
+        return redirect("orders:dashboard")
     item_form = OrderItemForm()
     return render(request, "orders/order_detail.html", {"order": order, "item_form": item_form})
 
@@ -153,23 +213,43 @@ def order_items_partial(request, pk):
 @role_required("admin", "manager", "waiter", "cashier")
 def order_add_item(request, pk):
     order = get_object_or_404(Order, pk=pk)
+    if _waiter_blocked_from_togo(request, order):
+        return redirect("orders:dashboard")
     if order.status in ("closed", "cancelled"):
         messages.error(request, "No se puede modificar una orden cerrada o cancelada.")
         return redirect("orders:detail", pk=pk)
     form = OrderItemForm(request.POST)
+    keep_cat = (request.POST.get("keep_cat") or "").strip()
     if form.is_valid():
+        menu_item = form.cleaned_data["menu_item"]
+        initial_status = (
+            OrderItem.Status.DELIVERED
+            if not menu_item.requires_kitchen
+            else OrderItem.Status.PENDING
+        )
         OrderItem.objects.create(
             order=order,
-            menu_item=form.cleaned_data["menu_item"],
+            menu_item=menu_item,
             quantity=form.cleaned_data["quantity"],
             notes=form.cleaned_data["notes"],
+            status=initial_status,
         )
-        if order.status == "pending":
+        if order.status == "pending" and menu_item.requires_kitchen:
             order.status = "in_progress"
             order.save(update_fields=["status"])
-        _notify_kitchen(order)
-        messages.success(request, "Item agregado a la orden.")
-    return redirect("orders:detail", pk=pk)
+        order.sync_status()
+        if menu_item.requires_kitchen:
+            _notify_kitchen(order)
+        messages.success(
+            request,
+            "Item agregado a la orden."
+            if menu_item.requires_kitchen
+            else f"{menu_item.name} agregado (lo sirve el mesero, no va a cocina).",
+        )
+    url = reverse("orders:detail", kwargs={"pk": pk})
+    if keep_cat:
+        url = f"{url}?cat={keep_cat}"
+    return redirect(url)
 
 
 @login_required
@@ -195,13 +275,7 @@ def order_update_status(request, pk):
         order.status = new_status
         order.save(update_fields=["status", "updated_at"])
         if new_status == "cancelled":
-            has_active = Order.objects.filter(
-                table=order.table,
-                status__in=["pending", "in_progress", "ready", "delivered"],
-            ).exclude(pk=order.pk).exists()
-            if not has_active:
-                order.table.status = "available"
-                order.table.save(update_fields=["status"])
+            _release_table_if_idle(order)
         _notify_kitchen(order)
         messages.success(request, f"Orden #{order.pk} actualizada a {order.get_status_display()}.")
     return redirect("orders:detail", pk=pk)
@@ -290,19 +364,13 @@ def order_checkout(request, pk):
             # Nunca tumbar el cobro por un fallo de inventario
             messages.warning(request, "Cobro OK, pero no se pudo actualizar el inventario.")
 
-        has_active = Order.objects.filter(
-            table=order.table, status__in=["pending", "in_progress", "ready", "delivered"]
-        ).exclude(pk=order.pk).exists()
-        if not has_active:
-            order.table.status = "available"
-            order.table.save(update_fields=["status"])
-
+        _release_table_if_idle(order)
         _notify_kitchen(order)
 
         if method == "cash" and change_due is not None:
             messages.success(request, f"Orden #{order.pk} cobrada. Cambio: ${change_due:.2f}")
         else:
-            messages.success(request, f"Orden #{order.pk} cobrada con {order.get_payment_method_display() if hasattr(order, 'get_payment_method_display') else method}.")
+            messages.success(request, f"Orden #{order.pk} cobrada.")
         return redirect("orders:receipt", pk=pk)
 
     return render(request, "orders/checkout.html", {
@@ -320,7 +388,14 @@ def order_receipt(request, pk):
         Order.objects.select_related("table", "waiter", "payment").prefetch_related("items__menu_item"),
         pk=pk,
     )
-    return render(request, "orders/receipt.html", {"order": order})
+    next_url = (request.GET.get("next") or "").strip()
+    # Solo rutas internas relativas (anti open-redirect)
+    if not (next_url.startswith("/") and not next_url.startswith("//")):
+        next_url = ""
+    return render(request, "orders/receipt.html", {
+        "order": order,
+        "receipt_next": next_url,
+    })
 
 
 @login_required
@@ -335,5 +410,5 @@ def order_item_status(request, pk, item_pk):
         order.sync_status()
         _notify_kitchen(order)
         if new_status == "ready":
-            _notify_waiter(order, f"Mesa {order.table.number}: {item.menu_item.name} está listo")
+            _notify_waiter(order, f"{order.display_label}: {item.menu_item.name} está listo")
     return redirect("orders:detail", pk=pk)
